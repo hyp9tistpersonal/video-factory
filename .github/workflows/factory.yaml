@@ -2,7 +2,21 @@ name: video-factory
 
 on:
   schedule:
-    - cron: "30 6 * * *"
+    - cron: "7 0,4,8,12,16,20 * * *"
+      timezone: "Asia/Tehran"
+
+    - cron: "55 0,4,8,12,16,20 * * *"
+      timezone: "Asia/Tehran"
+
+    - cron: "43 1,5,9,13,17,21 * * *"
+      timezone: "Asia/Tehran"
+
+    - cron: "31 2,6,10,14,18,22 * * *"
+      timezone: "Asia/Tehran"
+
+    - cron: "19 3,7,11,15,19,23 * * *"
+      timezone: "Asia/Tehran"
+
   workflow_dispatch: {}
 
 permissions:
