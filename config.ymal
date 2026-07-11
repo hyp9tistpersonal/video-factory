@@ -22,7 +22,7 @@ model: "gemini-2.0-flash"    # اگر گوگل مدل جدیدتر رایگان 
 
 # ---------- انتشار ----------
 enable_youtube: true
-enable_instagram: true
+enable_instagram: false
 privacy_status: "public"     # تا وقتی Audit گوگل نیامده می‌توانی "private" بگذاری
 category_id: 27              # 27 = آموزش، 24 = سرگرمی
 keep_days: 7                 # ویدیوهای قدیمی‌تر از این از ریپو پاک می‌شوند
