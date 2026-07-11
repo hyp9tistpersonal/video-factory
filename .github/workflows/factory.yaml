@@ -2,7 +2,7 @@ name: video-factory
 
 on:
   schedule:
-    # روزانه ۳۰ اجرا با فاصله تقریباً ۴۸ دقیقه، به وقت تهران
+    # روزانه ۳۰ اجرا، تقریباً هر ۴۸ دقیقه، به وقت تهران
     - cron: "7 0,4,8,12,16,20 * * *"
       timezone: "Asia/Tehran"
 
@@ -18,7 +18,7 @@ on:
     - cron: "19 3,7,11,15,19,23 * * *"
       timezone: "Asia/Tehran"
 
-  # اجرای دستی برای آزمایش
+  # امکان اجرای دستی برای آزمایش
   workflow_dispatch: {}
 
 permissions:
@@ -52,7 +52,7 @@ jobs:
 
           python -m pip install --upgrade pip
 
-          pip install --quiet \
+          python -m pip install --quiet \
             edge-tts \
             requests \
             pyyaml \
@@ -67,10 +67,51 @@ jobs:
             -o fonts/Vazirmatn.ttf \
             "https://github.com/google/fonts/raw/main/ofl/vazirmatn/Vazirmatn%5Bwght%5D.ttf"
 
-      - name: Render video and upload to YouTube
+      - name: Validate required secrets
+        shell: bash
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+
+          check_secret() {
+            local name="$1"
+            local value="$2"
+
+            if [ -z "$value" ]; then
+              echo "::error::$name به Workflow نرسیده است"
+              missing=1
+            else
+              echo "✅ $name موجود است"
+            fi
+          }
+
+          check_secret "GEMINI_API_KEY" "$GEMINI_API_KEY"
+          check_secret "PEXELS_API_KEY" "$PEXELS_API_KEY"
+          check_secret "PIXABAY_API_KEY" "$PIXABAY_API_KEY"
+          check_secret "YT_CLIENT_ID" "$YT_CLIENT_ID"
+          check_secret "YT_CLIENT_SECRET" "$YT_CLIENT_SECRET"
+          check_secret "YT_REFRESH_TOKEN" "$YT_REFRESH_TOKEN"
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "✅ تمام Secretهای ضروری در دسترس هستند"
+
+      - name: Render video and upload to YouTube
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
 
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -78,8 +119,9 @@ jobs:
 
         run: python factory.py render
 
-      # این مرحله حذف نشده است.
-      # تا وقتی enable_instagram در config.yaml برابر false باشد، اسکریپت آن را رد می‌کند.
+      # این مرحله برای استفاده آینده حفظ شده است.
+      # تا وقتی enable_instagram در config.yaml برابر false باشد،
+      # factory.py انتشار Instagram را رد می‌کند.
       - name: Publish to Instagram
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -88,7 +130,7 @@ jobs:
 
         run: python factory.py publish
 
-      # فقط هنگام شکست Workflow، ویدیو برای بررسی ذخیره می‌شود.
+      # فایل ویدیو فقط هنگام شکست Workflow و فقط یک روز نگهداری می‌شود.
       - name: Upload failed video for debugging
         if: failure()
         uses: actions/upload-artifact@v4
