@@ -34,7 +34,7 @@ model: "gemini-3.5-flash"    # اگر گوگل مدل جدیدتر رایگان 
 # ---------- انتشار ----------
 enable_youtube: true
 enable_instagram: false
-privacy_status: "private"     # تا وقتی Audit گوگل نیامده می‌توانی "private" بگذاری
+privacy_status: "public"     # تا وقتی Audit گوگل نیامده می‌توانی "private" بگذاری
 category_id: 27              # 27 = آموزش، 24 = سرگرمی
 keep_days: 7                 # ویدیوهای قدیمی‌تر از این از ریپو پاک می‌شوند
 
