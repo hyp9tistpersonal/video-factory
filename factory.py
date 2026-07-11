@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-🏭 کارخانه ویدیوی خودکار — نسخه ۱
+🏭 کارخانه ویدیوی خودکار — نسخه ۲
 همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels/Pixabay (تصویر) + FFmpeg (مونتاژ)
 + YouTube Data API + Instagram Graph API
 اجرا روی GitHub Actions — دو فاز:
@@ -67,70 +67,224 @@ def env(name):
 # =====================================================
 # ۱) تولید سناریو با Gemini (رایگان)
 # =====================================================
+def _formal_terms_in_script(data):
+    """عبارت‌های خیلی رسمی را در متن گفتاری پیدا می‌کند."""
+    formal_terms = (
+        "می‌باشد",
+        "می باشد",
+        "می‌باشند",
+        "می باشند",
+        "می‌گردد",
+        "می گردد",
+        "گردید",
+        "لذا",
+        "بدین ترتیب",
+        "واقع شده است",
+        "واقع گردیده",
+        "به شمار می‌رود",
+        "به شمار می رود",
+        "نامبرده",
+        "ایشان",
+        "آنان",
+    )
+
+    joined = " ".join(
+        str(scene.get("narration", ""))
+        for scene in data.get("scenes", [])
+        if isinstance(scene, dict)
+    )
+
+    return sorted({
+        term
+        for term in formal_terms
+        if term in joined
+    })
+
+
 def generate_script(cfg):
-    key = env("GEMINI_API_KEY") or die("سیکرت GEMINI_API_KEY تنظیم نشده (مرحله ۲ راهنما)")
+    key = env("GEMINI_API_KEY") or die(
+        "سیکرت GEMINI_API_KEY تنظیم نشده (مرحله ۲ راهنما)"
+    )
     model = cfg.get("model", "gemini-2.0-flash")
 
-    import random
     hint = ""
     hints = cfg.get("topic_hints") or []
     if hints:
-        hint = f"\nپیشنهاد موضوع امروز (می‌تونی خلاقانه تغییرش بدی): {random.choice(hints)}"
+        hint = (
+            "\nپیشنهاد موضوع امروز "
+            f"(می‌تونی خلاقانه تغییرش بدی): {random.choice(hints)}"
+        )
 
     n = int(cfg.get("scenes_count", 5))
-    prompt = f"""تو سناریونویس ویدیوهای کوتاه عمودی (یوتیوب شورتس / ریلز) هستی.
+    spoken_notes = cfg.get("spoken_style_notes", "")
+    spoken_dialect = cfg.get(
+        "spoken_dialect",
+        "فارسی محاوره‌ای تهرانیِ خنثی",
+    )
+
+    prompt = f"""تو برای یک کانال فارسی، سناریوی شورت می‌نویسی.
+متن باید دقیقاً شبیه حرف‌زدن طبیعی یک آدم ایرانی با دوستش باشد؛
+نه مقاله، نه کتاب درسی، نه اخبار و نه گویندگی رسمی.
 
 نیچ کانال: {cfg['niche']}
-{cfg.get('extra_style_notes', '')}{hint}
+سبک گفتار درخواستی: {spoken_dialect}
+{cfg.get('extra_style_notes', '')}
+{spoken_notes}
+{hint}
 
-یک سناریوی جدید بنویس. خروجی فقط و فقط JSON با دقیقاً این ساختار:
+خروجی فقط و فقط JSON با دقیقاً این ساختار باشد:
 {{
   "title": "عنوان جذاب فارسی، حداکثر ۸۵ کاراکتر",
-  "caption": "کپشن فارسی ۱ تا ۲ جمله برای اینستاگرام",
+  "caption": "کپشن فارسی ۱ تا ۲ جمله",
   "scenes": [
-    {{"narration": "متن گفتار فارسی این صحنه", "keywords": "2-3 english words for stock video"}}
+    {{
+      "narration": "متن گفتاری و خیلی خودمانی این صحنه",
+      "keywords": "2-4 english words for stock video"
+    }}
   ]
 }}
 
-قوانین:
-- دقیقاً {n} صحنه.
-- جمله اول باید قلاب (hook) قوی باشد؛ بدون سلام و مقدمه.
-- هر narration حداکثر ۲۲ کلمه، محاوره‌ای و ساده، بدون ایموجی و بدون علامت * یا #.
-- keywords انگلیسی، مناسب جستجوی ویدیوی استوک سینمایی عمودی (مثل: ocean storm night).
-- صحنه آخر با یک جمله باز یا سوال تمام شود تا مخاطب کامنت بگذارد."""
+قوانین قطعی:
+- دقیقاً {n} صحنه تولید کن.
+- جمله اول باید فوری کنجکاوی ایجاد کند؛ بدون سلام و مقدمه.
+- هر narration یک یا دو جمله کوتاه و حداکثر ۲۲ کلمه باشد.
+- فارسی گفتاری امروزی بنویس؛ مثل تعریف‌کردن یک داستان برای دوست نزدیک.
+- واژه‌ها و صرف فعل‌ها را با سبک گفتار درخواستی هماهنگ کن،
+  اما متن باید برای همه فارسی‌زبان‌ها قابل‌فهم بماند.
+- لهجه را با غلط‌نویسی افراطی، کشیدن حروف یا تکیه‌کلام کلیشه‌ای تقلید نکن.
+- شکل‌های طبیعی گفتاری مجازند، مثل:
+  «می‌دونی»، «فکرشو بکن»، «این‌جوری»، «اون موقع»،
+  «می‌ساختن»، «می‌گفتن»، «می‌شه»، «هستن»، «رو».
+- در کل ویدیو، عبارت‌هایی مثل «می‌دونی»، «ببین» یا
+  «جالبه که» را هرکدام بیشتر از یک‌بار استفاده نکن.
+- لحن خودمانی باشد، ولی لوس، کوچه‌بازاری یا پر از تکیه‌کلام نباشد.
+- از این لحن‌ها و کلمات رسمی استفاده نکن:
+  «می‌باشد»، «می‌گردد»، «گردید»، «لذا»،
+  «موجب»، «واقع شده است»، «به شمار می‌رود».
+- به‌جای «این بنا در دوره صفوی احداث گردید» بنویس:
+  «این بنا رو زمان صفوی ساختن.»
+- به‌جای «این موضوع موجب کاهش دما می‌شد» بنویس:
+  «همین کار دما رو پایین می‌آورد.»
+- از ویرگول، نقطه و علامت سؤال برای مکث طبیعی استفاده کن.
+- عددها را با حروف فارسی بنویس، نه رقم.
+- مخفف و واژه خارجی را طوری بنویس که فارسی‌زبان درست تلفظش کند.
+- هیچ ایموجی، ستاره یا هشتگ داخل narration نباشد.
+- keywords انگلیسی و مناسب ویدیوی استوک باشد.
+- صحنه آخر با یک سؤال طبیعی یا جمله باز تمام شود."""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent?key={key}"
+    )
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "response_mime_type": "application/json",
-            "temperature": 1.0, "topP": 0.95,
+            "temperature": 1.05,
+            "topP": 0.95,
         },
     }
+
     last_err = ""
-    for attempt in range(3):
-        r = requests.post(url, json=body, timeout=90)
-        if r.status_code != 200:
-            last_err = r.text[:500]
+    for attempt in range(5):
+        response = requests.post(url, json=body, timeout=90)
+        if response.status_code != 200:
+            last_err = response.text[:500]
             time.sleep(5)
             continue
+
         try:
-            text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-            text = re.sub(r"^```(json)?|```$", "", text.strip(), flags=re.M)
-            data = json.loads(text)
-            assert data.get("title") and len(data.get("scenes", [])) >= 3
+            raw_text = (
+                response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            )
+            raw_text = re.sub(
+                r"^```(json)?|```$",
+                "",
+                raw_text.strip(),
+                flags=re.M,
+            )
+            data = json.loads(raw_text)
+
+            scenes = data.get("scenes", [])
+            assert data.get("title")
+            assert isinstance(scenes, list)
+            assert len(scenes) == n
+            assert all(
+                isinstance(scene, dict)
+                and scene.get("narration")
+                and scene.get("keywords")
+                for scene in scenes
+            )
+
+            formal_hits = _formal_terms_in_script(data)
+            if formal_hits:
+                last_err = (
+                    "متن هنوز رسمی بود: "
+                    + "، ".join(formal_hits)
+                )
+                log(f"🔁 بازنویسی به‌خاطر لحن رسمی: {last_err}")
+                time.sleep(2)
+                continue
+
             log(f"📝 سناریو آماده شد: {data['title']}")
             return data
-        except Exception as e:
-            last_err = f"{e}"
+
+        except Exception as exc:
+            last_err = str(exc)
             time.sleep(3)
-    die(f"Gemini جواب معتبر نداد: {last_err}")
+
+    die(f"Gemini جواب گفتاری و معتبر نداد: {last_err}")
 
 
-def clean_for_tts(s):
-    s = re.sub(r"[\U00010000-\U0010FFFF]", "", s)          # حذف ایموجی
-    s = re.sub(r"[*_#`\"«»]", "", s)
-    return re.sub(r"\s+", " ", s).strip()
+_SPOKEN_REPLACEMENTS = (
+    (r"می\s*‌?\s*باشد", "هست"),
+    (r"می\s*‌?\s*باشند", "هستن"),
+    (r"می\s*‌?\s*گردد", "می‌شه"),
+    (r"می\s*‌?\s*شود", "می‌شه"),
+    (r"می\s*‌?\s*تواند", "می‌تونه"),
+    (r"می\s*‌?\s*توانست", "می‌تونست"),
+    (r"می\s*‌?\s*کنند", "می‌کنن"),
+    (r"می\s*‌?\s*کردند", "می‌کردن"),
+    (r"خواهد شد", "می‌شه"),
+    (r"وجود دارد", "هست"),
+    (r"وجود داشت", "بود"),
+    (r"به همین دلیل", "برای همین"),
+    (r"بنابراین", "پس"),
+    (r"زیرا", "چون"),
+    (r"اما", "ولی"),
+    (r"آن‌ها", "اونا"),
+    (r"آنها", "اونا"),
+    (r"این‌ها", "اینا"),
+    (r"آن موقع", "اون موقع"),
+    (r"هستند", "هستن"),
+    (r"بودند", "بودن"),
+    (r"گردید", "شد"),
+)
+
+
+def clean_for_tts(value):
+    """متن را برای تلفظ طبیعی‌تر و گفتاری‌تر آماده می‌کند."""
+    value = str(value or "")
+    value = re.sub(r"[\U00010000-\U0010FFFF]", "", value)
+    value = re.sub(r"[*_#`\"«»]", "", value)
+
+    for pattern, replacement in _SPOKEN_REPLACEMENTS:
+        value = re.sub(pattern, replacement, value)
+
+    # «را» در گفتار معمولاً طبیعی‌تر است که «رو» خوانده شود.
+    value = re.sub(r"(?<!\w)را(?!\w)", "رو", value)
+
+    # فاصله‌گذاری علائم نگارشی برای مکث طبیعی‌تر TTS
+    value = re.sub(r"\s+([،؛.!؟?])", r"\1", value)
+    value = re.sub(r"([،؛.!؟?])(?=\S)", r"\1 ", value)
+    value = re.sub(r"[؛]+", "،", value)
+    value = re.sub(r"\.{3,}", "…", value)
+    value = re.sub(r"\s+", " ", value).strip()
+
+    if value and value[-1] not in ".!؟?…":
+        value += "."
+
+    return value
 
 
 # =====================================================
@@ -582,18 +736,54 @@ def build_video(cfg, script):
     run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(WORK / "a.txt"),
          "-c:a", "aac", "-b:a", "160k", str(WORK / "voice.m4a")])
 
-    subs = WORK / "subs.ass"
-    build_ass(all_words, subs,
-              max_words=int(cfg.get("caption_words", 3)))
+    burn_subtitles = bool(cfg.get("burn_subtitles", False))
 
     fname = f"video_{datetime.now(timezone.utc):%Y%m%d_%H%M}.mp4"
     final = OUT / fname
-    run(["ffmpeg", "-y", "-i", str(WORK / "silent.mp4"), "-i", str(WORK / "voice.m4a"),
-         "-vf", f"subtitles={subs.as_posix()}:fontsdir={FONTS.as_posix()}",
-         "-map", "0:v", "-map", "1:a",
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p",
-         "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", "-shortest",
-         str(final)])
+
+    if burn_subtitles:
+        subs = WORK / "subs.ass"
+        build_ass(
+            all_words,
+            subs,
+            max_words=int(cfg.get("caption_words", 3)),
+        )
+
+        run([
+            "ffmpeg", "-y",
+            "-i", str(WORK / "silent.mp4"),
+            "-i", str(WORK / "voice.m4a"),
+            "-vf",
+            f"subtitles={subs.as_posix()}:fontsdir={FONTS.as_posix()}",
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "22",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "160k",
+            "-movflags", "+faststart",
+            "-shortest",
+            str(final),
+        ])
+        log("📝 زیرنویس فارسی روی ویدیو چسبانده شد")
+    else:
+        # حالت پیش‌فرض: هیچ زیرنویسی روی تصویر قرار نمی‌گیرد.
+        run([
+            "ffmpeg", "-y",
+            "-i", str(WORK / "silent.mp4"),
+            "-i", str(WORK / "voice.m4a"),
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "160k",
+            "-movflags", "+faststart",
+            "-shortest",
+            str(final),
+        ])
+        log("🚫 زیرنویس روی ویدیو غیرفعال است")
 
     log(f"✅ ویدیو ساخته شد: {fname} ({t_offset:.0f} ثانیه، {final.stat().st_size // 1024} KB)")
     if t_offset > 175:
