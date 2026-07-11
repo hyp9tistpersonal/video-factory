@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 🏭 کارخانه ویدیوی خودکار — نسخه ۱
-همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels (تصویر) + FFmpeg (مونتاژ)
+همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels/Pixabay (تصویر) + FFmpeg (مونتاژ)
 + YouTube Data API + Instagram Graph API
 اجرا روی GitHub Actions — دو فاز:
     python factory.py render    → ساخت ویدیو + آپلود یوتیوب
     python factory.py publish   → انتشار در اینستاگرام (بعد از push شدن فایل)
 """
 
-import os, re, sys, json, time, base64, asyncio, subprocess
+import os, re, sys, json, time, base64, asyncio, subprocess, random
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -22,6 +22,8 @@ OUT = ROOT / "output"
 WORK = ROOT / "work"
 FONTS = ROOT / "fonts"
 META = ROOT / "meta.json"
+CACHE_DIR = ROOT / "cache"
+STOCK_CACHE = CACHE_DIR / "stock_search.json"
 
 GRAPH = "https://graph.instagram.com/v21.0"
 
@@ -190,36 +192,263 @@ def build_ass(all_words, path, max_words=3, max_chars=24):
 
 
 # =====================================================
-# ۴) کلیپ استوک از Pexels (رایگان)
+# ۴) کلیپ استوک از Pexels + Pixabay
 # =====================================================
-def pexels_clip(keywords, dest, used_ids):
-    key = env("PEXELS_API_KEY") or die("سیکرت PEXELS_API_KEY تنظیم نشده (مرحله ۲ راهنما)")
-    for q in [keywords, "cinematic nature", "abstract dark background"]:
-        r = requests.get(
-            "https://api.pexels.com/videos/search",
-            headers={"Authorization": key},
-            params={"query": q, "orientation": "portrait", "per_page": 10},
-            timeout=60)
-        if r.status_code != 200:
+STOCK_CACHE_TTL = 24 * 60 * 60
+
+
+def _load_stock_cache():
+    if not STOCK_CACHE.exists():
+        return {}
+
+    try:
+        data = json.loads(STOCK_CACHE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_stock_cache(cache):
+    CACHE_DIR.mkdir(exist_ok=True)
+    STOCK_CACHE.write_text(
+        json.dumps(cache, ensure_ascii=False, indent=1),
+        encoding="utf-8",
+    )
+
+
+def _cache_get(source, query):
+    cache = _load_stock_cache()
+    key = f"{source}:{query.strip().lower()}"
+    item = cache.get(key)
+
+    if not isinstance(item, dict):
+        return None
+
+    saved_at = float(item.get("saved_at", 0))
+    if time.time() - saved_at > STOCK_CACHE_TTL:
+        return None
+
+    results = item.get("results")
+    return results if isinstance(results, list) else None
+
+
+def _cache_put(source, query, results):
+    cache = _load_stock_cache()
+    key = f"{source}:{query.strip().lower()}"
+    cache[key] = {
+        "saved_at": time.time(),
+        "results": results,
+    }
+
+    # کش قدیمی و خراب را جمع کن تا فایل بی‌نهایت بزرگ نشود.
+    now = time.time()
+    cache = {
+        k: v
+        for k, v in cache.items()
+        if isinstance(v, dict)
+        and now - float(v.get("saved_at", 0)) <= STOCK_CACHE_TTL
+    }
+    _save_stock_cache(cache)
+
+
+def _download_video(url, dest):
+    headers = {"User-Agent": "video-factory/2.0"}
+    with requests.get(url, headers=headers, stream=True, timeout=180) as dl:
+        dl.raise_for_status()
+        with open(dest, "wb") as f:
+            for chunk in dl.iter_content(1 << 20):
+                if chunk:
+                    f.write(chunk)
+
+    if not dest.exists() or dest.stat().st_size < 100_000:
+        raise RuntimeError("فایل ویدیویی دانلودشده معتبر نیست")
+
+
+def _pick_best_file(files):
+    files = [
+        f for f in files
+        if f.get("url")
+        and int(f.get("width") or 0) > 0
+        and int(f.get("height") or 0) >= 720
+    ]
+    if not files:
+        return None
+
+    def score(item):
+        width = int(item.get("width") or 0)
+        height = int(item.get("height") or 0)
+        is_vertical = height > width
+        target_height = 1920 if is_vertical else 1080
+        vertical_bonus = 10_000 if is_vertical else 0
+        # نزدیک‌ترین نسخه به Full HD را بردار؛ دانلود 4K فقط حجم را زیاد می‌کند.
+        size_score = -abs(height - target_height)
+        return vertical_bonus + size_score
+
+    return max(files, key=score)
+
+
+def search_pexels(query, used_ids):
+    key = env("PEXELS_API_KEY")
+    if not key:
+        log("⚠️ PEXELS_API_KEY موجود نیست؛ Pexels رد شد")
+        return []
+
+    cached = _cache_get("pexels", query)
+    if cached is not None:
+        return [x for x in cached if x.get("uid") not in used_ids]
+
+    r = requests.get(
+        "https://api.pexels.com/v1/videos/search",
+        headers={"Authorization": key},
+        params={
+            "query": query,
+            "orientation": "portrait",
+            "per_page": 15,
+        },
+        timeout=60,
+    )
+
+    if r.status_code != 200:
+        log(f"⚠️ خطای Pexels برای «{query}»: {r.status_code} {r.text[:180]}")
+        return []
+
+    results = []
+    for video in r.json().get("videos", []):
+        uid = f"pexels:{video.get('id')}"
+        files = [
+            {
+                "url": f.get("link"),
+                "width": f.get("width"),
+                "height": f.get("height"),
+            }
+            for f in video.get("video_files", [])
+            if f.get("file_type") == "video/mp4"
+        ]
+        selected_file = _pick_best_file(files)
+        if not selected_file:
             continue
-        for v in r.json().get("videos", []):
-            if v["id"] in used_ids:
+
+        user = video.get("user") or {}
+        results.append({
+            "source": "pexels",
+            "uid": uid,
+            "id": video.get("id"),
+            "download_url": selected_file["url"],
+            "page_url": video.get("url", ""),
+            "author": user.get("name", ""),
+            "width": selected_file.get("width", 0),
+            "height": selected_file.get("height", 0),
+            "duration": video.get("duration", 0),
+        })
+
+    _cache_put("pexels", query, results)
+    return [x for x in results if x.get("uid") not in used_ids]
+
+
+def search_pixabay(query, used_ids):
+    key = env("PIXABAY_API_KEY")
+    if not key:
+        log("⚠️ PIXABAY_API_KEY موجود نیست؛ Pixabay رد شد")
+        return []
+
+    cached = _cache_get("pixabay", query)
+    if cached is not None:
+        return [x for x in cached if x.get("uid") not in used_ids]
+
+    r = requests.get(
+        "https://pixabay.com/api/videos/",
+        params={
+            "key": key,
+            "q": query[:100],
+            "video_type": "film",
+            "safesearch": "true",
+            "order": "popular",
+            "per_page": 20,
+        },
+        timeout=60,
+    )
+
+    if r.status_code != 200:
+        log(f"⚠️ خطای Pixabay برای «{query}»: {r.status_code} {r.text[:180]}")
+        return []
+
+    results = []
+    for video in r.json().get("hits", []):
+        uid = f"pixabay:{video.get('id')}"
+        renditions = []
+        for size_name in ("medium", "large", "small", "tiny"):
+            item = (video.get("videos") or {}).get(size_name) or {}
+            if item.get("url"):
+                renditions.append({
+                    "url": item.get("url"),
+                    "width": item.get("width"),
+                    "height": item.get("height"),
+                })
+
+        selected_file = _pick_best_file(renditions)
+        if not selected_file:
+            continue
+
+        results.append({
+            "source": "pixabay",
+            "uid": uid,
+            "id": video.get("id"),
+            "download_url": selected_file["url"],
+            "page_url": video.get("pageURL", ""),
+            "author": video.get("user", ""),
+            "width": selected_file.get("width", 0),
+            "height": selected_file.get("height", 0),
+            "duration": video.get("duration", 0),
+        })
+
+    _cache_put("pixabay", query, results)
+    return [x for x in results if x.get("uid") not in used_ids]
+
+
+def stock_clip(keywords, dest, used_ids, source_counts):
+    queries = [
+        keywords,
+        "cinematic nature",
+        "abstract dark background",
+    ]
+
+    # در هر ویدیو منابع را متعادل نگه می‌داریم: تقریباً ۳/۲ یا ۲/۳.
+    if source_counts["pexels"] < source_counts["pixabay"]:
+        providers = [search_pexels, search_pixabay]
+    elif source_counts["pixabay"] < source_counts["pexels"]:
+        providers = [search_pixabay, search_pexels]
+    else:
+        providers = [search_pexels, search_pixabay]
+        random.shuffle(providers)
+
+    for query in queries:
+        for provider in providers:
+            candidates = provider(query, used_ids)
+            if not candidates:
                 continue
-            files = [f for f in v["video_files"]
-                     if f.get("file_type") == "video/mp4" and (f.get("height") or 0) >= 1080]
-            if not files:
+
+            # از میان نتایج خوب، فقط مورد اول را دائم انتخاب نکن.
+            top = candidates[: min(6, len(candidates))]
+            selected = random.choice(top)
+
+            try:
+                _download_video(selected["download_url"], dest)
+            except (requests.RequestException, OSError, RuntimeError) as exc:
+                log(
+                    f"⚠️ دانلود {selected['source']}:{selected['id']} شکست خورد: {exc}"
+                )
+                used_ids.add(selected["uid"])
                 continue
-            files.sort(key=lambda f: f["height"])
-            url = files[0]["link"]
-            with requests.get(url, stream=True, timeout=180) as dl:
-                dl.raise_for_status()
-                with open(dest, "wb") as f:
-                    for chunk in dl.iter_content(1 << 20):
-                        f.write(chunk)
-            used_ids.add(v["id"])
-            log(f"🎞️ کلیپ استوک: {q} (id {v['id']})")
-            return
-    die(f"هیچ کلیپی برای «{keywords}» پیدا نشد")
+
+            used_ids.add(selected["uid"])
+            source_counts[selected["source"]] += 1
+            log(
+                f"🎞️ کلیپ {selected['source']}: {query} "
+                f"(id {selected['id']}, {selected['width']}x{selected['height']})"
+            )
+            return selected
+
+    die(f"در Pexels و Pixabay هیچ کلیپی برای «{keywords}» پیدا نشد")
 
 
 # =====================================================
@@ -232,7 +461,10 @@ def build_video(cfg, script):
     rate = cfg.get("rate", "+8%")
 
     all_words, scene_files, audio_files = [], [], []
-    used_ids, t_offset = set(), 0.0
+    used_ids = set()
+    source_counts = {"pexels": 0, "pixabay": 0}
+    stock_sources = []
+    t_offset = 0.0
 
     for i, scene in enumerate(script["scenes"]):
         text = clean_for_tts(scene["narration"])
@@ -243,7 +475,13 @@ def build_video(cfg, script):
         dur = ffprobe_duration(mp3) + 0.25
 
         raw = WORK / f"stock_{i}.mp4"
-        pexels_clip(scene.get("keywords", "cinematic"), raw, used_ids)
+        selected_stock = stock_clip(
+            scene.get("keywords", "cinematic"),
+            raw,
+            used_ids,
+            source_counts,
+        )
+        stock_sources.append(selected_stock)
 
         seg = WORK / f"scene_{i}.mp4"
         run(["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(raw), "-t", f"{dur:.3f}",
@@ -282,6 +520,11 @@ def build_video(cfg, script):
     log(f"✅ ویدیو ساخته شد: {fname} ({t_offset:.0f} ثانیه، {final.stat().st_size // 1024} KB)")
     if t_offset > 175:
         log("⚠️ ویدیو از ۳ دقیقه بلندتر است؛ شاید Short حساب نشود. scenes_count را کم کن.")
+    script["stock_sources"] = stock_sources
+    log(
+        "📊 منابع این ویدیو: "
+        f"Pexels={source_counts['pexels']} | Pixabay={source_counts['pixabay']}"
+    )
     return fname
 
 
@@ -323,7 +566,18 @@ def youtube_upload(cfg, script, fname):
     tags = [h.lstrip("#") for h in cfg.get("hashtags", [])][:15]
     body = {
         "snippet": {"title": title,
-                    "description": script.get("caption", "") + "\n\n" + " ".join(cfg.get("hashtags", [])),
+                    "description": (
+                        script.get("caption", "")
+                        + "\n\n"
+                        + " ".join(cfg.get("hashtags", []))
+                        + "\n\nمنابع کلیپ‌ها:\n"
+                        + "\n".join(
+                            f"- {item.get('source', '').title()}: "
+                            f"{item.get('author') or 'Unknown'} "
+                            f"{item.get('page_url', '')}"
+                            for item in script.get("stock_sources", [])
+                        )
+                    ),
                     "tags": tags,
                     "categoryId": str(cfg.get("category_id", 27))},
         "status": {"privacyStatus": cfg.get("privacy_status", "public"),
@@ -470,6 +724,7 @@ def main():
             "title": script["title"],
             "caption": script.get("caption", script["title"]),
             "made_at": datetime.now(timezone.utc).isoformat(),
+            "stock_sources": script.get("stock_sources", []),
         }, ensure_ascii=False, indent=1), encoding="utf-8")
         youtube_upload(cfg, script, fname)
 
