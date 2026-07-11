@@ -2,6 +2,7 @@ name: video-factory
 
 on:
   schedule:
+    # روزانه ۳۰ اجرا با فاصله تقریباً ۴۸ دقیقه، به وقت تهران
     - cron: "7 0,4,8,12,16,20 * * *"
       timezone: "Asia/Tehran"
 
@@ -17,62 +18,82 @@ on:
     - cron: "19 3,7,11,15,19,23 * * *"
       timezone: "Asia/Tehran"
 
+  # اجرای دستی برای آزمایش
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: factory
+  group: video-factory
   cancel-in-progress: false
 
 jobs:
   make-and-publish:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 45
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install tools and Persian font
+        shell: bash
         run: |
+          set -euo pipefail
+
           sudo apt-get update -y
           sudo apt-get install -y ffmpeg
-          pip install --quiet edge-tts requests pyyaml pynacl
+
+          python -m pip install --upgrade pip
+
+          pip install --quiet \
+            edge-tts \
+            requests \
+            pyyaml \
+            pynacl
+
           mkdir -p fonts
-          curl -fsSL -o fonts/Vazirmatn-Bold.ttf "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Bold.ttf" || curl -fsSL -o "fonts/Vazirmatn.ttf" "https://github.com/google/fonts/raw/main/ofl/vazirmatn/Vazirmatn%5Bwght%5D.ttf"
+
+          curl -fsSL \
+            -o fonts/Vazirmatn-Bold.ttf \
+            "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Bold.ttf" \
+          || curl -fsSL \
+            -o fonts/Vazirmatn.ttf \
+            "https://github.com/google/fonts/raw/main/ofl/vazirmatn/Vazirmatn%5Bwght%5D.ttf"
 
       - name: Render video and upload to YouTube
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+
         run: python factory.py render
 
-      - name: Commit video to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add output meta.json || true
-          git commit -m "new video" || echo "nothing to commit"
-          git push
-
+      # این مرحله حذف نشده است.
+      # تا وقتی enable_instagram در config.yaml برابر false باشد، اسکریپت آن را رد می‌کند.
       - name: Publish to Instagram
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
+
         run: python factory.py publish
 
-      - name: Upload video as artifact
+      # فقط هنگام شکست Workflow، ویدیو برای بررسی ذخیره می‌شود.
+      - name: Upload failed video for debugging
+        if: failure()
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: video
+          name: failed-video-${{ github.run_id }}
           path: output/*.mp4
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
