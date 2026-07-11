@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-🏭 کارخانه ویدیوی خودکار — نسخه ۴
+🏭 کارخانه ویدیوی خودکار — نسخه ۵
 همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels/Pixabay (تصویر) + FFmpeg (مونتاژ)
 + YouTube Data API + Instagram Graph API
 اجرا روی GitHub Actions — دو فاز:
@@ -56,7 +56,12 @@ def ffprobe_duration(path):
 
 def load_config():
     with open(ROOT / "config.yaml", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f) or {}
+
+    if not isinstance(data, dict):
+        die("config.yaml باید یک YAML object معتبر باشد")
+
+    return data
 
 
 def env(name):
@@ -125,6 +130,22 @@ def _find_excluded_religious_terms(data, excluded_terms):
     return sorted(set(found))
 
 
+def _is_fragrance_script(data):
+    markers = (
+        "عطر",
+        "ادکلن",
+        "رایحه",
+        "پرفیوم",
+        "perfume",
+        "fragrance",
+        "cologne",
+        "eau de parfum",
+        "eau de toilette",
+    )
+    haystack = _script_search_text(data).casefold()
+    return any(marker.casefold() in haystack for marker in markers)
+
+
 def _is_religious_script(data, cfg):
     religious_cfg = cfg.get("religious_content") or {}
     markers = [
@@ -164,6 +185,15 @@ def _fallback_youtube_comment(data, cfg):
             "از نگاه شما مهم‌ترین درس این موضوع برای امروز چیه؟",
             "کدوم قسمت این موضوع براتون آرامش‌بخش‌تر یا تأمل‌برانگیزتر بود؟",
         ]
+    elif _is_fragrance_script(data):
+        templates = [
+            "شما برای این فصل بیشتر رایحه خنک می‌پسندید یا گرم؟",
+            "برای استفاده روزمره، ماندگاری براتون مهم‌تره یا پخش بو؟",
+            "کدوم خانواده بویایی بیشتر با سلیقه‌تون جور درمیاد؟",
+            "این نوع رایحه رو برای روز ترجیح می‌دید یا شب؟",
+            "موقع انتخاب عطر اول به فصل توجه می‌کنید یا موقعیت استفاده؟",
+            "برای هدیه‌دادن عطر، رایحه امن‌تر رو انتخاب می‌کنید یا خاص‌تر؟",
+        ]
     else:
         templates = [
             f"کدوم بخش موضوع «{title}» بیشتر توجهتون رو جلب کرد؟",
@@ -188,6 +218,116 @@ def _clean_generated_comment(comment):
     return comment[:450]
 
 
+def _normalize_hashtag(value):
+    """هشتگ را به شکل استاندارد و بدون فاصله تبدیل می‌کند."""
+    value = str(value or "").strip().lstrip("#")
+    value = re.sub(r"\s+", "_", value)
+    value = re.sub(
+        r"[^\w\u0600-\u06FF_]",
+        "",
+        value,
+        flags=re.UNICODE,
+    )
+    value = re.sub(r"_+", "_", value).strip("_")
+
+    if not value:
+        return ""
+
+    return f"#{value}"
+
+
+def _video_hashtags(cfg, script):
+    """هشتگ‌های ثابت را با تعداد تنظیم‌شده هشتگ موضوعی ترکیب می‌کند."""
+    fixed_hashtags = cfg.get("hashtags") or []
+    dynamic_count = int(cfg.get("dynamic_hashtag_count", 5))
+    dynamic_hashtags = list(script.get("hashtags") or [])[:dynamic_count]
+
+    result = []
+    seen = set()
+
+    for item in list(fixed_hashtags) + dynamic_hashtags:
+        hashtag = _normalize_hashtag(item)
+        if not hashtag:
+            continue
+
+        key = hashtag.casefold()
+        if key in seen:
+            continue
+
+        seen.add(key)
+        result.append(hashtag)
+
+    expected_max = len(fixed_hashtags) + dynamic_count
+    return result[:expected_max]
+
+
+_HASHTAG_STOP_WORDS = {
+    "این", "اون", "آن", "برای", "درباره", "چرا", "چطور", "یک", "چه",
+    "با", "از", "در", "به", "رو", "را", "و", "یا", "که", "روی",
+    "بهترین", "مناسب", "موضوع", "ویدیو", "است", "هست", "چیست",
+    "the", "a", "an", "and", "or", "for", "with", "of", "in", "to",
+}
+
+
+def _fallback_dynamic_hashtags(data, cfg, count, fixed_keys):
+    """از عنوان، کپشن و کلیدواژه صحنه‌ها هشتگ موضوعی جایگزین می‌سازد."""
+    candidates = []
+
+    title = str(data.get("title", ""))
+    caption = str(data.get("caption", ""))
+    combined = f"{title} {caption}"
+
+    # یک هشتگ فشرده از عنوان
+    title_words = [
+        word
+        for word in re.findall(r"[\w\u0600-\u06FF]+", title)
+        if len(word) >= 3 and word.casefold() not in _HASHTAG_STOP_WORDS
+    ]
+    if title_words:
+        candidates.append("#" + "_".join(title_words[:4]))
+
+    # کلمات مهم فارسی عنوان و کپشن
+    for word in re.findall(r"[\w\u0600-\u06FF]+", combined):
+        if len(word) < 3 or word.casefold() in _HASHTAG_STOP_WORDS:
+            continue
+        candidates.append("#" + word)
+
+    # کلیدواژه‌های انگلیسی صحنه‌ها
+    for scene in data.get("scenes", []):
+        if not isinstance(scene, dict):
+            continue
+        keywords = str(scene.get("keywords", ""))
+        for word in re.findall(r"[A-Za-z][A-Za-z0-9]+", keywords):
+            if len(word) >= 3 and word.casefold() not in _HASHTAG_STOP_WORDS:
+                candidates.append("#" + word)
+
+    # در موضوع عطر چند fallback دقیق‌تر
+    if _is_fragrance_script(data):
+        candidates.extend([
+            "#عطر",
+            "#رایحه",
+            "#انتخاب_عطر",
+            "#ماندگاری_عطر",
+            "#پخش_بو",
+        ])
+
+    normalized = []
+    seen = set()
+    for item in candidates:
+        hashtag = _normalize_hashtag(item)
+        if not hashtag:
+            continue
+        key = hashtag.casefold()
+        if key in fixed_keys or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(hashtag)
+        if len(normalized) >= count:
+            break
+
+    return normalized
+
+
 def generate_script(cfg):
     key = env("GEMINI_API_KEY") or die(
         "سیکرت GEMINI_API_KEY تنظیم نشده (مرحله ۲ راهنما)"
@@ -203,6 +343,16 @@ def generate_script(cfg):
         )
 
     n = int(cfg.get("scenes_count", 5))
+    dynamic_hashtag_count = int(
+        cfg.get("dynamic_hashtag_count", 5)
+    )
+
+    fixed_hashtags = [
+        _normalize_hashtag(item)
+        for item in cfg.get("hashtags", [])
+        if _normalize_hashtag(item)
+    ]
+    fixed_hashtags_text = " ".join(fixed_hashtags)
     spoken_notes = cfg.get("spoken_style_notes", "")
     spoken_dialect = cfg.get(
         "spoken_dialect",
@@ -234,6 +384,11 @@ def generate_script(cfg):
         )
     ).strip()
 
+    fragrance_cfg = cfg.get("fragrance_content") or {}
+    fragrance_prompt_notes = str(
+        fragrance_cfg.get("prompt_notes", "")
+    ).strip()
+
     prompt = f"""تو برای یک کانال فارسی، سناریوی شورت می‌نویسی.
 متن باید دقیقاً شبیه حرف‌زدن طبیعی یک آدم ایرانی با دوستش باشد؛
 نه مقاله، نه کتاب درسی، نه اخبار و نه گویندگی رسمی.
@@ -251,6 +406,9 @@ def generate_script(cfg):
 
 قواعد کامنت یوتیوب:
 {comment_style_notes}
+
+قواعد اختصاصی موضوع‌های عطر و ادکلن:
+{fragrance_prompt_notes}
 {hint}
 
 خروجی فقط و فقط JSON با دقیقاً این ساختار باشد:
@@ -258,6 +416,13 @@ def generate_script(cfg):
   "title": "عنوان جذاب فارسی، حداکثر ۸۵ کاراکتر",
   "caption": "کپشن فارسی ۱ تا ۲ جمله",
   "comment": "یک سؤال کوتاه و طبیعی، مخصوص موضوع همین ویدیو، برای کامنت یوتیوب",
+  "hashtags": [
+    "#هشتگ_موضوعی_اول",
+    "#هشتگ_موضوعی_دوم",
+    "#هشتگ_موضوعی_سوم",
+    "#هشتگ_موضوعی_چهارم",
+    "#هشتگ_موضوعی_پنجم"
+  ],
   "scenes": [
     {{
       "narration": "متن گفتاری و خیلی خودمانی این صحنه",
@@ -307,8 +472,23 @@ def generate_script(cfg):
 - برای موضوع‌های مذهبی، سؤال تأملی و کاربردی برای زندگی روزمره بنویس؛
   نه سؤال فرقه‌ای، جدلی یا تحریک‌آمیز.
 - در comment از هشتگ، لینک، منبع کلیپ و درخواست سابسکرایب استفاده نکن.
-- درباره موضوع‌ها و نام‌های خارج از محدوده مذهبی کانال چیزی تولید نکن."""
+- درباره موضوع‌ها و نام‌های خارج از محدوده مذهبی کانال چیزی تولید نکن.
 
+قوانین hashtags:
+- دقیقاً {dynamic_hashtag_count} هشتگ موضوعی تولید کن.
+- هشتگ‌ها باید مستقیماً مربوط به موضوع همین ویدیو باشند.
+- هشتگ‌های ثابت زیر را دوباره تولید نکن:
+  {fixed_hashtags_text}
+- هشتگ عمومی و نامرتبط فقط برای افزایش بازدید تولید نکن.
+- داخل هر هشتگ فاصله نگذار و برای چند کلمه از زیرخط استفاده کن.
+- علامت # باید ابتدای تمام هشتگ‌ها باشد.
+- هشتگ‌ها باید کوتاه، قابل‌جست‌وجو و طبیعی باشند.
+- برای موضوع مذهبی، نام همان شخصیت، کتاب، مناسبت یا مفهوم را استفاده کن.
+- برای خیاطی، نوع آموزش، ابزار یا تکنیک دوخت را استفاده کن.
+- برای رقص عربی، سبک، حرکت یا جنبه آموزشی را استفاده کن.
+- برای موضوع زنان، حوزه فعالیت یا نام زن مورد بحث را استفاده کن.
+- برای موضوع عطر، دقیقاً از جنسیت یا کاربرد، فصل، خانواده بویایی،
+  ماندگاری، پخش بو یا موقعیت استفاده همان ویدیو هشتگ بساز."""
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={key}"
@@ -351,6 +531,64 @@ def generate_script(cfg):
                 and scene.get("narration")
                 and scene.get("keywords")
                 for scene in scenes
+            )
+
+            raw_hashtags = data.get("hashtags", [])
+            if not isinstance(raw_hashtags, list):
+                raise ValueError(
+                    "hashtags باید یک فهرست باشد"
+                )
+
+            fixed_hashtag_keys = {
+                item.casefold()
+                for item in fixed_hashtags
+            }
+
+            dynamic_hashtags = []
+            dynamic_seen = set()
+
+            for item in raw_hashtags:
+                hashtag = _normalize_hashtag(item)
+                if not hashtag:
+                    continue
+
+                key = hashtag.casefold()
+
+                if key in fixed_hashtag_keys:
+                    continue
+
+                if key in dynamic_seen:
+                    continue
+
+                dynamic_seen.add(key)
+                dynamic_hashtags.append(hashtag)
+
+            if len(dynamic_hashtags) < dynamic_hashtag_count:
+                fallback_hashtags = _fallback_dynamic_hashtags(
+                    data,
+                    cfg,
+                    dynamic_hashtag_count,
+                    fixed_hashtag_keys | dynamic_seen,
+                )
+                for hashtag in fallback_hashtags:
+                    key = hashtag.casefold()
+                    if key not in fixed_hashtag_keys and key not in dynamic_seen:
+                        dynamic_seen.add(key)
+                        dynamic_hashtags.append(hashtag)
+                    if len(dynamic_hashtags) >= dynamic_hashtag_count:
+                        break
+
+            if len(dynamic_hashtags) < dynamic_hashtag_count:
+                raise ValueError(
+                    "Gemini و fallback نتوانستند دقیقاً "
+                    f"{dynamic_hashtag_count} هشتگ موضوعی غیرتکراری بسازند؛ "
+                    f"تعداد معتبر فعلی: {len(dynamic_hashtags)}"
+                )
+
+            data["hashtags"] = dynamic_hashtags[:dynamic_hashtag_count]
+            log(
+                "🏷️ هشتگ‌های موضوعی: "
+                + " ".join(data["hashtags"])
             )
 
             comment = _clean_generated_comment(data.get("comment"))
@@ -1081,7 +1319,9 @@ def _youtube_description(cfg, script):
     if caption:
         parts.append(caption)
 
-    hashtags = " ".join(cfg.get("hashtags", []))
+    hashtags = " ".join(
+        _video_hashtags(cfg, script)
+    )
     if hashtags:
         parts.append(hashtags)
 
@@ -1142,7 +1382,7 @@ def youtube_upload(cfg, script, fname):
 
     tags = [
         hashtag.lstrip("#")
-        for hashtag in cfg.get("hashtags", [])
+        for hashtag in _video_hashtags(cfg, script)
     ][:15]
 
     body = {
@@ -1291,7 +1531,11 @@ def instagram_publish(cfg, meta):
     if not video_url:
         die("ویدیو عمومی نشد. GitHub Pages را فعال کرده‌ای؟ (مرحله ۳ راهنما)")
 
-    caption = meta["caption"] + "\n\n" + " ".join(cfg.get("hashtags", []))
+    caption = (
+        meta["caption"]
+        + "\n\n"
+        + " ".join(_video_hashtags(cfg, meta))
+    )
     r = requests.post(f"{GRAPH}/{uid}/media", timeout=120, data={
         "media_type": "REELS", "video_url": video_url,
         "caption": caption[:2100], "share_to_feed": "true",
@@ -1336,6 +1580,7 @@ def main():
             "title": script["title"],
             "caption": script.get("caption", script["title"]),
             "comment": script.get("comment", ""),
+            "hashtags": script.get("hashtags", []),
             "made_at": datetime.now(timezone.utc).isoformat(),
             "stock_sources": script.get("stock_sources", []),
             "voice_profile": script.get("voice_profile", {}),
