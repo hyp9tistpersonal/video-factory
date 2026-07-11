@@ -18,7 +18,7 @@ voice: "fa-IR-FaridNeural"   # صدای مرد. زن: fa-IR-DilaraNeural
 rate: "+8%"                  # سرعت گفتار
 caption_words: 3             # چند کلمه هم‌زمان روی صفحه
 
-model: "gemini-2.0-flash"    # اگر گوگل مدل جدیدتر رایگان داد، اینجا عوضش کن
+model: "gemini-3.5-flash"    # اگر گوگل مدل جدیدتر رایگان داد، اینجا عوضش کن
 
 # ---------- انتشار ----------
 enable_youtube: true
