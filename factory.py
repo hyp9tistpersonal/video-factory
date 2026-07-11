@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-🏭 کارخانه ویدیوی خودکار — نسخه ۲
+🏭 کارخانه ویدیوی خودکار — نسخه ۴
 همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels/Pixabay (تصویر) + FFmpeg (مونتاژ)
 + YouTube Data API + Instagram Graph API
 اجرا روی GitHub Actions — دو فاز:
@@ -8,7 +8,7 @@
     python factory.py publish   → انتشار در اینستاگرام (بعد از push شدن فایل)
 """
 
-import os, re, sys, json, time, base64, asyncio, subprocess, random
+import os, re, sys, json, time, base64, asyncio, subprocess, random, hashlib
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -101,6 +101,93 @@ def _formal_terms_in_script(data):
     })
 
 
+def _script_search_text(data):
+    parts = [
+        str(data.get("title", "")),
+        str(data.get("caption", "")),
+        str(data.get("comment", "")),
+    ]
+    for scene in data.get("scenes", []):
+        if isinstance(scene, dict):
+            parts.append(str(scene.get("narration", "")))
+            parts.append(str(scene.get("keywords", "")))
+    return " ".join(parts)
+
+
+def _find_excluded_religious_terms(data, excluded_terms):
+    """عبارت‌های مذهبی خارج از محدوده کانال را در خروجی پیدا می‌کند."""
+    haystack = _script_search_text(data).casefold()
+    found = []
+    for item in excluded_terms:
+        term = str(item).strip()
+        if term and term.casefold() in haystack:
+            found.append(term)
+    return sorted(set(found))
+
+
+def _is_religious_script(data, cfg):
+    religious_cfg = cfg.get("religious_content") or {}
+    markers = [
+        str(item).strip()
+        for item in religious_cfg.get(
+            "detection_terms",
+            [
+                "قرآن",
+                "نهج‌البلاغه",
+                "نهج البلاغه",
+                "امام علی",
+                "امام حسین",
+                "اربعین",
+                "عاشورا",
+                "کربلا",
+                "حضرت زینب",
+                "حضرت فاطمه",
+            ],
+        )
+        if str(item).strip()
+    ]
+    haystack = _script_search_text(data).casefold()
+    return any(marker.casefold() in haystack for marker in markers)
+
+
+def _fallback_youtube_comment(data, cfg):
+    """کامنت جایگزین متنوع، وقتی مدل comment مناسب برنگرداند."""
+    title = re.sub(r"\s+", " ", str(data.get("title", "این موضوع"))).strip()
+    title = re.sub(r"#shorts", "", title, flags=re.I).strip()
+
+    if _is_religious_script(data, cfg):
+        templates = [
+            "کدوم پیام این موضوع رو بیشتر می‌شه وارد زندگی روزمره کرد؟",
+            "شما از این نکته چه برداشت عملی‌ای برای زندگی امروز دارید؟",
+            "کدوم بخش این روایت بیشتر آدم رو به فکر می‌بره؟",
+            "این مفهوم توی تصمیم‌های روزمره چه کمکی می‌تونه بکنه؟",
+            "از نگاه شما مهم‌ترین درس این موضوع برای امروز چیه؟",
+            "کدوم قسمت این موضوع براتون آرامش‌بخش‌تر یا تأمل‌برانگیزتر بود؟",
+        ]
+    else:
+        templates = [
+            f"کدوم بخش موضوع «{title}» بیشتر توجهتون رو جلب کرد؟",
+            "این نکته رو قبلاً می‌دونستید یا براتون تازه بود؟",
+            "به‌نظرتون کاربردی‌ترین بخش این موضوع کدومه؟",
+            "شما تجربه مشابهی درباره این موضوع داشتید؟",
+            "اگه قرار بود فقط یک نکته از این ویدیو یادتون بمونه، کدوم رو انتخاب می‌کردید؟",
+            "کدوم بخش این داستان به نظرتون عجیب‌تر یا جالب‌تر بود؟",
+            "این موضوع چه سؤالی توی ذهنتون ایجاد کرد؟",
+            "شما این موضوع رو از چه زاویه‌ای می‌بینید؟",
+        ]
+
+    seed_text = title + str(env("GITHUB_RUN_NUMBER") or "")
+    index = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest(), 16)
+    return templates[index % len(templates)]
+
+
+def _clean_generated_comment(comment):
+    comment = re.sub(r"\s+", " ", str(comment or "")).strip()
+    comment = re.sub(r"https?://\S+", "", comment).strip()
+    comment = re.sub(r"#[\w\u0600-\u06FF_]+", "", comment).strip()
+    return comment[:450]
+
+
 def generate_script(cfg):
     key = env("GEMINI_API_KEY") or die(
         "سیکرت GEMINI_API_KEY تنظیم نشده (مرحله ۲ راهنما)"
@@ -122,6 +209,31 @@ def generate_script(cfg):
         "فارسی محاوره‌ای تهرانیِ خنثی",
     )
 
+    religious_cfg = cfg.get("religious_content") or {}
+    religious_prompt_notes = str(
+        religious_cfg.get("prompt_notes", "")
+    ).strip()
+    excluded_religious_topics = [
+        str(item).strip()
+        for item in religious_cfg.get("excluded_topics", [])
+        if str(item).strip()
+    ]
+    excluded_religious_text = (
+        "، ".join(excluded_religious_topics)
+        if excluded_religious_topics
+        else "ندارد"
+    )
+
+    comment_style_notes = str(
+        cfg.get(
+            "youtube_comment_style_notes",
+            (
+                "کامنت باید کاملاً متناسب با موضوع همان ویدیو باشد، "
+                "هر بار ساختار متفاوتی داشته باشد و از جمله‌های ثابت استفاده نکند."
+            ),
+        )
+    ).strip()
+
     prompt = f"""تو برای یک کانال فارسی، سناریوی شورت می‌نویسی.
 متن باید دقیقاً شبیه حرف‌زدن طبیعی یک آدم ایرانی با دوستش باشد؛
 نه مقاله، نه کتاب درسی، نه اخبار و نه گویندگی رسمی.
@@ -130,12 +242,22 @@ def generate_script(cfg):
 سبک گفتار درخواستی: {spoken_dialect}
 {cfg.get('extra_style_notes', '')}
 {spoken_notes}
+
+قواعد اختصاصی محتوای مذهبی:
+{religious_prompt_notes}
+
+موضوع‌ها و نام‌های مذهبیِ خارج از محدوده این کانال:
+{excluded_religious_text}
+
+قواعد کامنت یوتیوب:
+{comment_style_notes}
 {hint}
 
 خروجی فقط و فقط JSON با دقیقاً این ساختار باشد:
 {{
   "title": "عنوان جذاب فارسی، حداکثر ۸۵ کاراکتر",
   "caption": "کپشن فارسی ۱ تا ۲ جمله",
+  "comment": "یک سؤال کوتاه و طبیعی، مخصوص موضوع همین ویدیو، برای کامنت یوتیوب",
   "scenes": [
     {{
       "narration": "متن گفتاری و خیلی خودمانی این صحنه",
@@ -170,7 +292,22 @@ def generate_script(cfg):
 - مخفف و واژه خارجی را طوری بنویس که فارسی‌زبان درست تلفظش کند.
 - هیچ ایموجی، ستاره یا هشتگ داخل narration نباشد.
 - keywords انگلیسی و مناسب ویدیوی استوک باشد.
-- صحنه آخر با یک سؤال طبیعی یا جمله باز تمام شود."""
+- صحنه آخر با یک سؤال طبیعی یا جمله باز تمام شود.
+- مقدار comment باید مخصوص موضوع همین ویدیو باشد، نه یک متن عمومی و تکراری.
+- comment باید یک سؤال کوتاه، طبیعی، محترمانه و مرتبط با نکته اصلی ویدیو باشد.
+- comment حداکثر دو جمله و حداکثر ۱۸۰ کاراکتر باشد.
+- پایان comment باید در هر ویدیو متفاوت و متناسب با موضوع باشد.
+- از جمله‌های ثابت و تکراری مثل
+  «نظرتون رو توی کامنتا بگید»،
+  «موافقید یا مخالفید؟»
+  و «شما چی فکر می‌کنید؟»
+  به‌صورت همیشگی استفاده نکن.
+- برای موضوع‌های آموزشی، درباره تجربه، اشتباه رایج یا کاربرد مهارت سؤال کن.
+- برای موضوع‌های تاریخی، درباره برداشت مخاطب یا بخش جالب داستان سؤال کن.
+- برای موضوع‌های مذهبی، سؤال تأملی و کاربردی برای زندگی روزمره بنویس؛
+  نه سؤال فرقه‌ای، جدلی یا تحریک‌آمیز.
+- در comment از هشتگ، لینک، منبع کلیپ و درخواست سابسکرایب استفاده نکن.
+- درباره موضوع‌ها و نام‌های خارج از محدوده مذهبی کانال چیزی تولید نکن."""
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -215,6 +352,38 @@ def generate_script(cfg):
                 and scene.get("keywords")
                 for scene in scenes
             )
+
+            comment = _clean_generated_comment(data.get("comment"))
+            generic_comments = {
+                "نظرتون رو توی کامنتا بگید؛ موافقید یا مخالفید؟",
+                "نظرتون رو توی کامنتا بگید، موافقید یا مخالفید؟",
+                "شما چی فکر می‌کنید؟",
+                "موافقید یا مخالفید؟",
+            }
+            if (
+                not comment
+                or comment in generic_comments
+                or len(comment) < 12
+            ):
+                comment = _fallback_youtube_comment(data, cfg)
+
+            if not comment.endswith(("؟", "?", ".")):
+                comment += "؟"
+
+            data["comment"] = comment[:450]
+
+            excluded_hits = _find_excluded_religious_terms(
+                data,
+                excluded_religious_topics,
+            )
+            if excluded_hits:
+                last_err = (
+                    "خروجی وارد موضوع مذهبی خارج از محدوده شد: "
+                    + "، ".join(excluded_hits)
+                )
+                log(f"🔁 بازنویسی به‌خاطر موضوع خارج از محدوده: {last_err}")
+                time.sleep(2)
+                continue
 
             formal_hits = _formal_terms_in_script(data)
             if formal_hits:
@@ -812,64 +981,239 @@ def cleanup_old(cfg):
 # =====================================================
 # ۶) آپلود یوتیوب (REST خام، بدون SDK)
 # =====================================================
+def _youtube_channel_id(token):
+    response = requests.get(
+        "https://www.googleapis.com/youtube/v3/channels",
+        params={"part": "id", "mine": "true", "maxResults": 1},
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=60,
+    )
+
+    if response.status_code != 200:
+        log(
+            "⚠️ شناسه کانال برای ارسال کامنت دریافت نشد: "
+            f"{response.status_code} {response.text[:300]}"
+        )
+        return None
+
+    items = response.json().get("items", [])
+    if not items:
+        log("⚠️ هیچ کانال یوتیوبی برای این حساب پیدا نشد")
+        return None
+
+    return items[0].get("id")
+
+
+def youtube_post_comment(cfg, token, video_id, comment_text):
+    """یک کامنت سطح اول، متناسب با موضوع ویدیو، منتشر می‌کند."""
+    if not cfg.get("enable_youtube_comment", True):
+        log("⏭️ کامنت خودکار یوتیوب در config خاموش است")
+        return False
+
+    comment_text = re.sub(r"\s+", " ", str(comment_text or "")).strip()
+    if not comment_text:
+        log("⚠️ متن کامنت خالی است؛ ارسال کامنت رد شد")
+        return False
+
+    channel_id = _youtube_channel_id(token)
+    if not channel_id:
+        return False
+
+    body = {
+        "snippet": {
+            "channelId": channel_id,
+            "videoId": video_id,
+            "topLevelComment": {
+                "snippet": {
+                    "textOriginal": comment_text[:9000],
+                }
+            },
+        }
+    }
+
+    # گاهی ویدیو بلافاصله بعد از آپلود برای کامنت آماده نیست.
+    for attempt in range(3):
+        response = requests.post(
+            "https://www.googleapis.com/youtube/v3/commentThreads",
+            params={"part": "snippet"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json; charset=UTF-8",
+            },
+            json=body,
+            timeout=60,
+        )
+
+        if response.status_code in (200, 201):
+            log(f"💬 کامنت یوتیوب منتشر شد: {comment_text}")
+            return True
+
+        error_text = response.text[:500]
+
+        # مشکل مجوز با صبرکردن حل نمی‌شود.
+        if response.status_code in (401, 403):
+            log(
+                "⚠️ ارسال کامنت یوتیوب انجام نشد. "
+                "Refresh Token باید مجوز youtube.force-ssl داشته باشد. "
+                f"پاسخ API: {response.status_code} {error_text}"
+            )
+            return False
+
+        if attempt < 2:
+            log(
+                "⏳ ویدیو هنوز برای کامنت آماده نیست؛ "
+                f"تلاش دوباره {attempt + 2}/3"
+            )
+            time.sleep(12)
+
+    log(
+        "⚠️ کامنت یوتیوب بعد از سه تلاش منتشر نشد: "
+        f"{response.status_code} {error_text}"
+    )
+    return False
+
+
+def _youtube_description(cfg, script):
+    """توضیحات ویدیو؛ منابع کلیپ فقط در صورت فعال‌بودن config افزوده می‌شوند."""
+    parts = []
+
+    caption = str(script.get("caption", "")).strip()
+    if caption:
+        parts.append(caption)
+
+    hashtags = " ".join(cfg.get("hashtags", []))
+    if hashtags:
+        parts.append(hashtags)
+
+    if cfg.get("include_stock_sources_in_description", False):
+        stock_lines = [
+            (
+                f"- {item.get('source', '').title()}: "
+                f"{item.get('author') or 'Unknown'} "
+                f"{item.get('page_url', '')}"
+            ).strip()
+            for item in script.get("stock_sources", [])
+        ]
+        if stock_lines:
+            parts.append("منابع کلیپ‌ها:\n" + "\n".join(stock_lines))
+
+    return "\n\n".join(parts)
+
+
 def youtube_upload(cfg, script, fname):
-    cid, csec, rtok = env("YT_CLIENT_ID"), env("YT_CLIENT_SECRET"), env("YT_REFRESH_TOKEN")
+    cid = env("YT_CLIENT_ID")
+    csec = env("YT_CLIENT_SECRET")
+    rtok = env("YT_REFRESH_TOKEN")
+
     if not (cid and csec and rtok):
-        log("⏭️ سیکرت‌های یوتیوب تنظیم نشده‌اند — از یوتیوب رد شدیم (مرحله ۵ راهنما)")
+        log(
+            "⏭️ سیکرت‌های یوتیوب تنظیم نشده‌اند — "
+            "از یوتیوب رد شدیم (مرحله ۵ راهنما)"
+        )
         return
+
     if not cfg.get("enable_youtube", True):
         log("⏭️ یوتیوب در config خاموش است")
         return
 
-    r = requests.post("https://oauth2.googleapis.com/token", data={
-        "client_id": cid, "client_secret": csec,
-        "refresh_token": rtok, "grant_type": "refresh_token"}, timeout=60)
-    if r.status_code != 200:
-        die(f"گرفتن توکن یوتیوب شکست خورد (refresh token را دوباره بگیر — مرحله ۵): {r.text[:300]}")
-    token = r.json()["access_token"]
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": cid,
+            "client_secret": csec,
+            "refresh_token": rtok,
+            "grant_type": "refresh_token",
+        },
+        timeout=60,
+    )
+
+    if response.status_code != 200:
+        die(
+            "گرفتن توکن یوتیوب شکست خورد "
+            "(refresh token را دوباره بگیر — مرحله ۵): "
+            f"{response.text[:300]}"
+        )
+
+    token = response.json()["access_token"]
 
     title = script["title"].strip()[:92]
     if "#shorts" not in title.lower():
         title += " #Shorts"
-    tags = [h.lstrip("#") for h in cfg.get("hashtags", [])][:15]
+
+    tags = [
+        hashtag.lstrip("#")
+        for hashtag in cfg.get("hashtags", [])
+    ][:15]
+
     body = {
-        "snippet": {"title": title,
-                    "description": (
-                        script.get("caption", "")
-                        + "\n\n"
-                        + " ".join(cfg.get("hashtags", []))
-                        + "\n\nمنابع کلیپ‌ها:\n"
-                        + "\n".join(
-                            f"- {item.get('source', '').title()}: "
-                            f"{item.get('author') or 'Unknown'} "
-                            f"{item.get('page_url', '')}"
-                            for item in script.get("stock_sources", [])
-                        )
-                    ),
-                    "tags": tags,
-                    "categoryId": str(cfg.get("category_id", 27))},
-        "status": {"privacyStatus": cfg.get("privacy_status", "public"),
-                   "selfDeclaredMadeForKids": False},
+        "snippet": {
+            "title": title,
+            "description": _youtube_description(cfg, script),
+            "tags": tags,
+            "categoryId": str(cfg.get("category_id", 27)),
+        },
+        "status": {
+            "privacyStatus": cfg.get("privacy_status", "public"),
+            "selfDeclaredMadeForKids": False,
+        },
     }
+
     init = requests.post(
         "https://www.googleapis.com/upload/youtube/v3/videos",
-        params={"uploadType": "resumable", "part": "snippet,status"},
-        headers={"Authorization": f"Bearer {token}",
-                 "Content-Type": "application/json; charset=UTF-8"},
-        json=body, timeout=60)
+        params={
+            "uploadType": "resumable",
+            "part": "snippet,status",
+        },
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=UTF-8",
+        },
+        json=body,
+        timeout=60,
+    )
+
     if init.status_code not in (200, 201):
-        die(f"شروع آپلود یوتیوب شکست خورد: {init.status_code} {init.text[:400]}")
-    loc = init.headers["Location"]
-    with open(OUT / fname, "rb") as f:
-        up = requests.put(loc, data=f,
-                          headers={"Authorization": f"Bearer {token}",
-                                   "Content-Type": "video/mp4"}, timeout=600)
-    if up.status_code in (200, 201):
-        vid = up.json().get("id")
-        log(f"▶️ آپلود یوتیوب موفق: https://youtube.com/watch?v={vid}")
-        log("ℹ️ اگر ویدیو private و قفل‌شده است، پروژه‌ات هنوز Audit گوگل را نگرفته (مرحله ۵ راهنما).")
-    else:
-        die(f"آپلود یوتیوب شکست خورد: {up.status_code} {up.text[:400]}")
+        die(
+            "شروع آپلود یوتیوب شکست خورد: "
+            f"{init.status_code} {init.text[:400]}"
+        )
+
+    upload_url = init.headers["Location"]
+
+    with open(OUT / fname, "rb") as video_file:
+        upload = requests.put(
+            upload_url,
+            data=video_file,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "video/mp4",
+            },
+            timeout=600,
+        )
+
+    if upload.status_code not in (200, 201):
+        die(
+            "آپلود یوتیوب شکست خورد: "
+            f"{upload.status_code} {upload.text[:400]}"
+        )
+
+    video_id = upload.json().get("id")
+    log(
+        "▶️ آپلود یوتیوب موفق: "
+        f"https://youtube.com/watch?v={video_id}"
+    )
+    log(
+        "ℹ️ اگر ویدیو private و قفل‌شده است، "
+        "پروژه‌ات هنوز Audit گوگل را نگرفته (مرحله ۵ راهنما)."
+    )
+
+    if video_id:
+        youtube_post_comment(
+            cfg,
+            token,
+            video_id,
+            script.get("comment"),
+        )
 
 
 # =====================================================
@@ -991,6 +1335,7 @@ def main():
             "filename": fname,
             "title": script["title"],
             "caption": script.get("caption", script["title"]),
+            "comment": script.get("comment", ""),
             "made_at": datetime.now(timezone.utc).isoformat(),
             "stock_sources": script.get("stock_sources", []),
             "voice_profile": script.get("voice_profile", {}),
