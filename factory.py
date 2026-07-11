@@ -136,15 +136,92 @@ def clean_for_tts(s):
 # =====================================================
 # ۲) صداگذاری با edge-tts + زمان‌بندی کلمه‌به‌کلمه
 # =====================================================
-async def tts_scene(text, voice, rate, mp3_path):
-    com = edge_tts.Communicate(text, voice, rate=rate)
+def choose_voice_profile(cfg):
+    """یک پروفایل صدا برای کل ویدیو انتخاب می‌کند.
+
+    روی GitHub Actions، انتخاب براساس GITHUB_RUN_NUMBER می‌چرخد تا
+    اجراهای پشت‌سرهم تا حد ممکن یک پروفایل یکسان نداشته باشند.
+    """
+    raw_profiles = cfg.get("voice_profiles") or []
+
+    # سازگاری با config قدیمی
+    if not raw_profiles:
+        raw_profiles = [{
+            "label": "legacy",
+            "voice": cfg.get("voice", "fa-IR-FaridNeural"),
+            "rate": cfg.get("rate", "+8%"),
+            "pitch": cfg.get("pitch", "+0Hz"),
+            "volume": cfg.get("volume", "+0%"),
+        }]
+
+    profiles = []
+    for index, item in enumerate(raw_profiles, start=1):
+        if isinstance(item, str):
+            item = {"voice": item}
+        if not isinstance(item, dict):
+            log(f"⚠️ پروفایل صدای شماره {index} نامعتبر است و رد شد")
+            continue
+
+        voice = str(item.get("voice", "")).strip()
+        if not voice:
+            log(f"⚠️ پروفایل صدای شماره {index} voice ندارد و رد شد")
+            continue
+
+        profiles.append({
+            "label": str(item.get("label") or f"profile-{index}"),
+            "gender": str(item.get("gender") or "unknown"),
+            "voice": voice,
+            "rate": str(item.get("rate") or "+0%"),
+            "pitch": str(item.get("pitch") or "+0Hz"),
+            "volume": str(item.get("volume") or "+0%"),
+        })
+
+    if not profiles:
+        die("هیچ پروفایل صدای معتبری در config.yaml وجود ندارد")
+
+    forced = env("VOICE_PROFILE")
+    if forced:
+        for profile in profiles:
+            if forced in {profile["label"], profile["voice"]}:
+                selected = profile
+                break
+        else:
+            die(
+                f"VOICE_PROFILE={forced} در voice_profiles پیدا نشد"
+            )
+    else:
+        run_number = env("GITHUB_RUN_NUMBER")
+        if run_number and run_number.isdigit():
+            selected = profiles[(int(run_number) - 1) % len(profiles)]
+        else:
+            selected = random.choice(profiles)
+
+    log(
+        "🎙️ صدای این ویدیو: "
+        f"{selected['label']} | {selected['voice']} | "
+        f"rate={selected['rate']} | pitch={selected['pitch']}"
+    )
+    return selected
+
+
+async def tts_scene(text, profile, mp3_path):
+    com = edge_tts.Communicate(
+        text,
+        profile["voice"],
+        rate=profile["rate"],
+        pitch=profile["pitch"],
+        volume=profile["volume"],
+        boundary="WordBoundary",
+    )
     words = []
     with open(mp3_path, "wb") as f:
         async for ch in com.stream():
             if ch["type"] == "audio":
                 f.write(ch["data"])
             elif ch["type"] == "WordBoundary":
-                words.append((ch["offset"] / 1e7, ch["duration"] / 1e7, ch["text"]))
+                words.append(
+                    (ch["offset"] / 1e7, ch["duration"] / 1e7, ch["text"])
+                )
     return words
 
 
@@ -457,8 +534,9 @@ def stock_clip(keywords, dest, used_ids, source_counts):
 def build_video(cfg, script):
     WORK.mkdir(exist_ok=True)
     OUT.mkdir(exist_ok=True)
-    voice = cfg.get("voice", "fa-IR-FaridNeural")
-    rate = cfg.get("rate", "+8%")
+
+    voice_profile = choose_voice_profile(cfg)
+    script["voice_profile"] = voice_profile
 
     all_words, scene_files, audio_files = [], [], []
     used_ids = set()
@@ -471,7 +549,7 @@ def build_video(cfg, script):
         if not text:
             continue
         mp3 = WORK / f"voice_{i}.mp3"
-        words = asyncio.run(tts_scene(text, voice, rate, mp3))
+        words = asyncio.run(tts_scene(text, voice_profile, mp3))
         dur = ffprobe_duration(mp3) + 0.25
 
         raw = WORK / f"stock_{i}.mp4"
@@ -725,6 +803,7 @@ def main():
             "caption": script.get("caption", script["title"]),
             "made_at": datetime.now(timezone.utc).isoformat(),
             "stock_sources": script.get("stock_sources", []),
+            "voice_profile": script.get("voice_profile", {}),
         }, ensure_ascii=False, indent=1), encoding="utf-8")
         youtube_upload(cfg, script, fname)
 
