@@ -1,10 +1,10 @@
 # =====================================================
-# config200 — نسخه دقیق برای factory6
-# فقط اصلاحات مربوط به دقت بصری صحنه‌ها و حضور زن در صحنه اولِ موضوع‌های زنانه
+# config201 — نسخه سخت‌گیرانه برای factory6
+# اصلاح قطعی کادربندی، زاویه دوربین و دیده‌شدن واضح زن در صحنه اولِ موضوع‌های زنانه
 # ساختار هشتگ‌ها همان ۷ ثابت + ۵ موضوعی باقی مانده است.
 # =====================================================
 
-config_version: '200'
+config_version: '201'
 niche: دانستنی‌ها، مهارت‌ها و روایت‌های جذاب و دقیق درباره جهان و انسان، با تمرکز پررنگ‌تر بر زنان، دختران، تاریخ زنان، سبک
   زندگی، هنر، پوشاک، خیاطی، صنایع‌دستی، فرهنگ، حرکت و رقص عربی؛ در کنار حفظ تمام موضوع‌های علمی، تاریخی، طبیعی، فناوری، روان‌شناسی
   و فرهنگی نسخه جامع؛ همچنین آموزه‌های قرآن، نهج‌البلاغه، سیره امام علی و امام حسین، عاشورا، اربعین و فرهنگ شیعه با رویکرد
@@ -14,6 +14,15 @@ niche: دانستنی‌ها، مهارت‌ها و روایت‌های جذاب
 extra_style_notes: |
   هر ویدیو فقط یک موضوع اصلی و مشخص داشته باشد.
 
+  قانون سخت و غیرقابل‌تفسیر صحنه اول در موضوع‌های زنانه:
+  زن باید واقعاً، واضح و قابل‌تشخیص در خود تصویر دیده شود؛ صرف وجود واژه‌های woman یا female در keywords کافی نیست.
+  در دو ثانیه اول، زن باید سوژه اصلی و در پیش‌زمینه باشد و حداقل حدود سی درصد کادر را بگیرد.
+  نمای مجاز صحنه اول: نمای متوسط، نیم‌تنه یا تمام‌قد از روبه‌رو یا زاویه سه‌رخ در سطح چشم.
+  حداقل صورت و نیم‌تنه، یا تمام بدن زن باید داخل کادر و بدون پوشیدگی جدی دیده شود.
+  نمای فقط دست، فقط ابزار، فقط پارچه، فقط شیشه عطر، پشت‌سر، سیلوئت، نمای خیلی دور، نمای خیلی بسته، POV و سوژه خارج از کادر مردود است.
+  اگر کلیپ انتخاب‌شده این شرایط را ندارد، همان کلیپ رد و دوباره انتخاب شود؛ موضوع یا روایت به‌خاطر خطای تصویر عوض نشود.
+  سینه هاش هم نسبتا بزرگ و خوب باشه 
+  
   اطلاعات تاریخی، علمی، پزشکی، روان‌شناختی، اجتماعی و جغرافیایی
   باید دقیق و قابل‌بررسی باشند.
 
@@ -92,28 +101,28 @@ extra_style_notes: |
   آموزش دختران، زنان در علم و فناوری، زنان در هنر و ورزش،
   و رقص عربی به‌عنوان هنر، فرهنگ، حرکت و تمرین بدنی.
 
-  در بیشتر ویدیوها، صحنه اول باید تصویر یک زن بزرگسال یا دختر جوانِ بزرگسال داشته باشد،
+  در بیشتر ویدیوها، صحنه اول باید تصویر واضح یک زن بزرگسال یا دختر جوانِ بزرگسال داشته باشد،
   به شرطی که تصویر با موضوع ارتباط واقعی داشته باشد و گمراه‌کننده نباشد.
 
   برای موضوع‌هایی که مستقیماً درباره زنان یا دختران هستند،
-  keywords صحنه اول باید به‌طور روشن شامل یک سوژه زنانه مرتبط باشد؛ مثل:
-  adult woman, young adult woman, female scientist, female artist,
-  female tailor, woman sewing, female dancer, woman historian.
+  حضور واضح زن در صحنه اول اجباری است و keywords باید هم فعالیت و هم کادربندی را مشخص کنند؛ مثل:
+  adult woman sewing medium shot face visible, female scientist medium shot foreground,
+  female artist upper body visible, adult female dancer full body front view.
 
   برای موضوع‌های عمومی هم، وقتی طبیعی و مرتبط است،
-  سوژه صحنه اول را یک زن بزرگسالِ در حال مشاهده، آموزش، کار، پژوهش،
-  مطالعه، سفر، ورزش، آشپزی، طراحی یا ساخت انتخاب کن.
+  سوژه صحنه اول را یک زن بزرگسالِ واضح و در پیش‌زمینه انتخاب کن که در حال مشاهده، آموزش، کار، پژوهش،
+  مطالعه، سفر، ورزش، آشپزی، طراحی یا ساخت باشد.
 
   کلمه girl فقط وقتی استفاده شود که موضوع واقعاً درباره کودکی یا دختران کم‌سن است.
   در موضوع‌های عمومی، خیاطی، مد و رقص از adult woman یا young adult woman استفاده کن.
 
-  در موضوع‌های خیاطی، keywords باید دقیق و کاربردی باشند؛ مثل:
-  woman sewing machine, female tailor pattern cutting,
-  adult woman hand stitching, dressmaking tutorial close up,
-  fabric cutting table, sewing pattern paper.
+  در موضوع‌های خیاطی، keywords صحنه اول باید خود زن و کادر را واضح کنند؛ مثل:
+  adult woman sewing machine medium shot front three quarter,
+  female tailor pattern cutting upper body visible,
+  adult woman hand stitching seated medium shot face visible.
 
-  صحنه اول نباید همیشه با یک نمای تکراری از چهره زن شروع شود.
-  بین نماهای کار، دست‌ها، ابزار، محیط، آموزش، حرکت، نمای نیم‌تنه و نمای باز تنوع ایجاد کن.
+  تنوع نمای دست، ابزار، پارچه، محیط و نمای نزدیک فقط از صحنه دوم به بعد مجاز است.
+  در صحنه اول موضوع زنانه، تنوع نباید باعث حذف، کوچک‌شدن، پوشیده‌شدن یا خارج‌شدن زن از کادر شود.
 
   تمام موضوع‌های عمومی قبلی حفظ شوند و حذف نشوند.
   تمرکز زنانه باید با افزایش وزن انتخاب و تعداد پیشنهادها ایجاد شود،
@@ -124,13 +133,13 @@ extra_style_notes: |
     یک مکان خاص، یک مراسم خاص یا یک شخص خاص است، کلیپ هم باید دقیقاً همان را نشان بدهد.
     از کلیپ‌های قشنگ ولی نامرتبط استفاده نکن.
 
-    برای موضوع‌های مربوط به زنان یا دختران، صحنه اول باید تا حد امکان یک زن بزرگسالِ مرتبط با همان موضوع داشته باشد
-    تا مخاطب سریع بفهمد موضوع زنانه است.
-    این حضور باید واقعی، مرتبط و غیرگمراه‌کننده باشد.
+    برای موضوع‌های مربوط به زنان یا دختران، صحنه اول باید حتماً یک زن بزرگسالِ مرتبط با همان موضوع را واضح نشان دهد
+    تا مخاطب در همان دو ثانیه اول بدون حدس‌زدن متوجه سوژه زنانه شود.
+    زن باید سوژه اصلی، در پیش‌زمینه و با صورت و نیم‌تنه یا تمام بدن داخل کادر باشد.
 
-    برای موضوع‌های زنانه، keywords صحنه اول باید در صورت امکان یکی از این الگوها را داشته باشد:
-    adult woman, young adult woman, female teacher, female tailor, woman sewing,
-    woman reading, female athlete, female artist, woman perfume store.
+    برای موضوع‌های زنانه، keywords صحنه اول باید الزاماً فعالیت، اندازه نما و زاویه را با هم مشخص کنند؛ مثل:
+    adult woman medium shot face visible, female teacher eye level upper body visible,
+    female tailor front three quarter medium shot, adult woman perfume store foreground centered.
 spoken_dialect: فارسی محاوره‌ای تهرانی خنثی، روان و قابل‌فهم برای همه فارسی‌زبان‌ها
 spoken_style_notes: |-
   روایت باید گرم، صمیمی، طبیعی و کاملاً گفتاری باشد.
@@ -869,7 +878,7 @@ topic_hints:
 - آموزش دایره کوچک لگن برای مبتدی‌ها
 - آموزش حرکت هشت افقی با توضیح ساده
 - آموزش حرکت هشت عمودی با کنترل آرام
-- آموزش شیمی ساده با رعایت زانو و وضعیت بدن
+- آموزش حرکت شیمی (Shimmy) ساده با رعایت زانو و وضعیت بدن
 - آموزش انتقال وزن بین دو پا در رقص عربی
 - آموزش قدم‌برداری پایه همراه با حرکت دست
 - آموزش چرخش ساده و کنترل‌شده برای مبتدی‌ها
@@ -1879,12 +1888,17 @@ content_dimensions:
     - تاریخ خیاطی
     - تاریخ چرخ خیاطی
     visual_priority:
-    - adult woman sewing
-    - female tailor
-    - woman using sewing machine
+    - adult woman sewing medium shot face visible
+    - female tailor medium shot foreground centered
+    - adult woman using sewing machine front three quarter view
+    - adult woman cutting pattern upper body visible
+    - adult woman hand stitching seated medium shot
+    - dressmaking studio adult woman clearly visible
+    detail_visual_priority_scene_2_to_5:
     - pattern cutting close up
-    - hands stitching fabric
-    - dressmaking studio
+    - hands stitching fabric close up
+    - sewing machine needle macro
+    - sewing pattern paper table
   dance_culture_and_movement:
     label: رقص، فرهنگ و حرکت
     enabled: true
@@ -2118,7 +2132,6 @@ fact_checking:
 
     «این ادعا هنوز به‌طور قطعی ثابت نشده.»
 
-    myth_language: |
   myth_language: |-
     اگر درباره افسانه، داستان عامیانه یا روایت محلی صحبت می‌کنی،
     حتماً ماهیت آن را مشخص کن:
@@ -2131,7 +2144,6 @@ fact_checking:
 
     «این بخش بیشتر روایت عامیانه‌ست تا واقعیت تاریخی ثابت‌شده.»
 
-    numeric_precision: |
   numeric_precision: |-
     عددهای تقریبی را دقیق‌تر از منبع نشان نده.
 
@@ -2140,7 +2152,6 @@ fact_checking:
 
     برای تخمین‌ها از «حدود»، «تقریباً» یا «نزدیک به» استفاده کن.
 
-    conflicting_sources: |
   conflicting_sources: |-
     اگر منابع معتبر با هم اختلاف دارن، اختلاف را پنهان نکن.
 
@@ -2194,11 +2205,11 @@ video_structure:
     - موضوع در همان جمله اول مشخص باشد
     - ادعای اصلی مبهم نباشد
     - تیتر دروغین یا اغراق‌آمیز نباشد
-    - در موضوع‌های زنانه، سوژه اصلی صحنه اول زن بزرگسال یا دختر جوان بزرگسال مرتبط با موضوع باشد
+    - در موضوع‌های زنانه، سوژه اصلی صحنه اول زن بزرگسال یا دختر جوان بزرگسال مرتبط باشد و خود زن واقعاً در کادر، واضح و قابل‌تشخیص دیده شود
     - در حدود سه‌چهارم ویدیوها، وقتی طبیعی و مرتبط است، صحنه اول حضور یک زن بزرگسال داشته باشد
-    - keywords صحنه اول باید نوع فعالیت زن را مشخص کند؛ نه فقط woman portrait
-    - برای خیاطی از نمای زن خیاط، دست‌ها، چرخ، الگو یا پارچه استفاده شود
-    - برای رقص فقط زن بزرگسال در تمرین یا اجرای فرهنگی محترمانه نمایش داده شود
+    - keywords صحنه اول باید نوع فعالیت، اندازه نما، زاویه دوربین و واضح‌بودن زن را مشخص کند؛ نه فقط woman portrait
+    - برای خیاطی در صحنه اول خود زن خیاط باید واضح در نمای متوسط یا نیم‌تنه دیده شود؛ نمای فقط دست، چرخ، الگو یا پارچه فقط برای صحنه‌های دوم تا پنجم مجاز است
+    - برای رقص فقط زن بزرگسال در تمرین یا اجرای فرهنگی محترمانه، با نمای تمام‌قد یا متوسط از روبه‌رو یا سه‌رخ و بدن داخل کادر نمایش داده شود
   scene_2:
     purpose: زمینه لازم
     duration_seconds: 7-11
@@ -2300,20 +2311,20 @@ visual_rules:
   - James Webb Space Telescope
   - Great Barrier Reef aerial
   - Neanderthal scientific reconstruction
-  - adult woman sewing machine vertical
-  - female tailor pattern cutting
-  - woman hand stitching close up
-  - dressmaking studio woman
-  - fabric measuring tape hands
+  - adult woman sewing machine medium shot face visible vertical
+  - female tailor pattern cutting medium shot upper body visible
+  - adult woman hand stitching seated medium shot face visible
+  - dressmaking studio adult woman foreground centered
+  - adult woman measuring fabric medium shot upper body visible
   - sewing pattern paper table
-  - adult woman Arabic dance practice studio
-  - adult female dancer cultural performance
-  - Raqs Sharqi class adult women
-  - adult woman dance warm up
-  - Arabic dance hand movement adult woman
-  - female scientist microscope laboratory vertical
-  - adult woman historian reading manuscript
-  - woman traditional embroidery close up
+  - adult woman Arabic dance practice full body front view studio
+  - adult female dancer cultural performance full body clearly visible
+  - Raqs Sharqi class adult women medium wide shot subjects visible
+  - adult woman dance warm up full body eye level
+  - Arabic dance hand movement adult woman medium shot upper body visible
+  - female scientist microscope laboratory medium shot face visible vertical
+  - adult woman historian reading manuscript medium shot face visible
+  - adult woman traditional embroidery medium shot face visible
   bad_keyword_examples:
   - interesting history
   - amazing world
@@ -2356,20 +2367,62 @@ visual_rules:
     enabled: true
     required_for_directly_female_topics: true
     avoid_unrelated_female_subject: true
-    rule: در موضوع‌های مربوط به زنان و دختران، صحنه اول باید یک زن مرتبط با همان موضوع داشته باشد.
+    visibility_is_mandatory: true
+    visible_from_first_frame: true
+    minimum_continuous_visibility_seconds: 3
+    minimum_subject_frame_coverage_percent: 30
+    subject_must_be_foreground: true
+    face_or_upper_body_or_full_body_visible: true
+    allowed_shot_sizes:
+    - medium shot
+    - medium close up
+    - full body shot
+    allowed_camera_angles:
+    - eye level front view
+    - eye level three quarter view
+    forbidden_scene_1_compositions:
+    - hands only
+    - object only
+    - tools only
+    - back view
+    - over the shoulder hiding subject
+    - silhouette
+    - extreme close up
+    - extreme wide shot with tiny subject
+    - POV without visible woman
+    - cropped head
+    - woman outside frame
+    - woman blocked by foreground object
+    rule: در موضوع‌های مربوط به زنان و دختران، صحنه اول باید خود زن مرتبط را واضح، در پیش‌زمینه و قابل‌تشخیص نشان دهد؛ وجود دست یا وسایل متعلق به زن به‌تنهایی حضور زن محسوب نمی‌شود.
+    media_selection_rule: اگر زن در پیش‌نمایش واقعی کلیپ واضح نیست، کلیپ رد و گزینه دیگری انتخاب شود؛ keywords به‌تنهایی معیار قبولی نیستند.
+    rendered_media_validation:
+      enabled: true
+      inspect_actual_frames_not_metadata_only: true
+      sample_first_three_seconds: true
+      require_person_subject_visible: true
+      require_subject_matches_scene_description: true
+      reject_if_only_hands_or_objects_detected: true
+      reject_if_subject_is_tiny_or_occluded: true
+      retry_same_scene_media_on_failure: true
   sewing_visual_keywords:
-  - adult woman sewing machine vertical
-  - female tailor pattern cutting
-  - woman hand stitching close up
-  - dressmaking studio woman
+  - adult woman sewing at sewing machine medium shot front three quarter vertical
+  - female tailor cutting pattern medium shot face visible
+  - adult woman hand stitching seated medium shot upper body visible
+  - adult woman measuring fabric at cutting table medium shot
+  - dressmaking studio adult woman foreground centered
+  - adult woman demonstrating sewing technique eye level
+  sewing_detail_visual_keywords_scene_2_to_5:
+  - pattern cutting close up
+  - hands stitching fabric close up
   - fabric measuring tape hands
   - sewing pattern paper table
+  - sewing machine needle macro
   arabic_dance_visual_keywords:
-  - adult woman Arabic dance practice studio
-  - adult female dancer cultural performance
-  - Raqs Sharqi class adult women
-  - adult woman dance warm up
-  - Arabic dance hand movement adult woman
+  - adult woman Arabic dance practice full body front view vertical
+  - adult female dancer cultural performance full body clearly visible
+  - Raqs Sharqi class adult women medium wide shot subjects visible
+  - adult woman dance warm up full body eye level
+  - adult woman Arabic dance movement three quarter full body
   religious_visual_policy:
     do_not_depict_holy_figures_as_people: true
     do_not_generate_fake_portraits_of_holy_figures: true
@@ -2382,8 +2435,8 @@ visual_rules:
     - Karbala shrine exterior night
     - Najaf shrine exterior architecture
     - Islamic calligraphy manuscript close up
-    - adult woman modest clothing reflection
-    - religious textile embroidery hands
+    - adult Muslim woman modest clothing medium shot face visible
+    - adult Muslim woman religious embroidery medium shot face visible
   religious_good_keyword_examples:
   - adult Muslim woman reading Quran home vertical
   - Nahj al Balagha book hands reading
@@ -2392,7 +2445,7 @@ visual_rules:
   - Najaf shrine architecture exterior
   - Islamic calligraphy manuscript macro
   - black religious flag textile close up
-  - adult woman religious embroidery hands
+  - adult Muslim woman religious embroidery medium shot face visible
   religious_forbidden_visuals:
   - تصویر ساختگی یا بازیگر در نقش امام علی
   - تصویر ساختگی یا بازیگر در نقش امام حسین
@@ -2401,22 +2454,25 @@ visual_rules:
   - تصویر توهین‌آمیز یا کلیشه‌ای مذهبی
   - تصویر فرقه‌ای تحریک‌کننده
   fragrance_visual_policy:
-    women_topics_first_scene: زن بزرگسال مرتبط با موضوع، شیشه عطر، فروشگاه رایحه یا نمای دست در حال تست
-    men_topics_first_scene: مرد بزرگسال مرتبط با موضوع، شیشه عطر، فروشگاه رایحه یا نمای دست در حال تست
+    women_topics_first_scene: زن بزرگسال باید واضح در نمای متوسط یا نیم‌تنه، از روبه‌رو یا سه‌رخ، در حال تست یا انتخاب عطر دیده شود؛ شیشه یا دست تنها مردود است.
+    men_topics_first_scene: مرد بزرگسال باید واضح در نمای متوسط یا نیم‌تنه، از روبه‌رو یا سه‌رخ، در حال تست یا انتخاب عطر دیده شود؛ شیشه یا دست تنها مردود است.
+    scene_1_hands_only_forbidden: true
+    scene_1_object_only_forbidden: true
+    scene_1_face_or_upper_body_required: true
     avoid_sexualization: true
     avoid_minors: true
     avoid_unrelated_glamour_portraits: true
     preferred_shots:
-    - نمای نزدیک شیشه عطر
-    - اسپری عطر در نور طبیعی
-    - دست بزرگسال در حال تست روی بلاتر
-    - فروشگاه عطر
-    - مواد اولیه عطرسازی
-    - زن بزرگسال در حال انتخاب رایحه
-    - مرد بزرگسال در حال انتخاب رایحه
+    - زن بزرگسال واضح در حال انتخاب رایحه، نمای متوسط، پیش‌زمینه
+    - مرد بزرگسال واضح در حال انتخاب رایحه، نمای متوسط، پیش‌زمینه
+    - زن بزرگسال در حال تست عطر روی مچ، صورت و نیم‌تنه داخل کادر
+    - مرد بزرگسال در حال تست عطر، صورت و نیم‌تنه داخل کادر
+    - نمای نزدیک شیشه عطر فقط در صحنه‌های دوم تا پنجم
+    - دست بزرگسال در حال تست روی بلاتر فقط در صحنه‌های دوم تا پنجم
+    - مواد اولیه عطرسازی فقط در صحنه‌های دوم تا پنجم
   scene_keyword_accuracy_policy:
     enabled: true
-    rule: keywords هر صحنه باید دقیقاً مربوط به همان صحنه باشد و از کلیپ نامرتبط استفاده نشود.
+    rule: keywords هر صحنه باید دقیقاً مربوط به همان صحنه باشد و از کلیپ نامرتبط استفاده نشود. در صحنه اول موضوع زنانه، keywords باید زن واضح، اندازه نما و زاویه دوربین را الزام کنند.
     examples:
     - button sewing close up -> نه camera photography
     - female tailor sewing machine -> نه random unrelated clip
@@ -2786,7 +2842,7 @@ topic_catalog:
   - رقص خلیجی زنان و ویژگی حرکت مو و لباس
   - چطور لباس راحت و غیرمحدودکننده برای تمرین رقص انتخاب کنیم؟
   arabic_dance_and_movement:
-  - داستان یک زن شیمی‌دان و یک کشف مهم
+  - آموزش حرکت پایه لگن با دامنه ملایم
   - تاریخ رقص عربی و شکل‌گیری رقص شرقی
   - فرق رقص شرقی با سبک‌های فولکلور عربی چیست؟
   - نقش موسیقی و ریتم در رقص عربی
@@ -2795,7 +2851,7 @@ topic_catalog:
   - آموزش وضعیت صحیح بدن در رقص عربی برای مبتدی‌ها
   - آموزش حرکت نرم دست‌ها در رقص عربی
   - آموزش هماهنگی دست و شانه در رقص عربی
-  - آموزش شیمی ساده با رعایت زانو و وضعیت بدن
+  - آموزش حرکت شیمی (Shimmy) ساده با رعایت زانو و وضعیت بدن
   - آموزش انتقال وزن بین دو پا در رقص عربی
   - آموزش ترکیب کوتاه چهار حرکت پایه رقص عربی
   - آموزش تمرین ریتم با دست‌زدن قبل از رقص
@@ -3270,27 +3326,24 @@ content_safety:
 
     میان توضیح تاریخی و توجیه رفتار خشونت‌آمیز تفاوت بگذار.
   women_and_dance_rules:
-  - زنان و دختران را جنسی‌سازی نکن
-  - برای مد، خیاطی و رقص، سوژه تصویری پیش‌فرض زن بزرگسال باشد
-  - کودک یا نوجوان در اجرای رقص عربی نمایش داده نشود
-  - آموزش رقص باید ایمن، غیرپزشکی و در دامنه بدون درد باشد
-  - هیچ ادعای پزشکی درباره اثر رقص یا ورزش مطرح نکن
-  - موضوع‌های مربوط به بدن با زبان محترمانه و غیرقضاوتی بیان شوند
-  - از کلیشه‌های ظاهری و استانداردهای غیرواقعی زیبایی خودداری کن
-  religious_rules:
-  - هیچ توهین یا نفرتی علیه اهل سنت یا هیچ مذهب دیگری تولید نشود
-  - موضوع‌های اهل سنت و خلفای اهل سنت خارج از محدوده کانال‌اند و تولید نشوند
-  - هیچ مقایسه فرقه‌ای یا مناظره مذهبی تولید نشود
-  - هیچ نقل‌قول جعلی یا منبع‌سازی مذهبی انجام نشود
-  - هیچ فتوای شخصی یا حکم شرعی بدون منبع معتبر ارائه نشود
-  - موضوع‌های مذهبی با لحن محترمانه، اخلاقی و کاربردی باشند
-  fragrance_rules:
-  - عطر را درمان یا عامل جذب قطعی معرفی نکن
-  - ادعای فرومون تضمینی مطرح نکن
-  - در واکنش پوستی توصیه عمومی و ایمن بده
-  - بهترین عطر را برای همه یکسان معرفی نکن
-  - از جنسی‌سازی زنان یا مردان در تصاویر عطر خودداری کن
-  - در تصاویر انتخاب عطر از بزرگسالان استفاده کن
+    - زنان و دختران را جنسی‌سازی کن ولی از سن 18 به بالا
+    - برای مد، خیاطی و رقص، سوژه تصویری پیش‌فرض زن بزرگسال باشد میتونی دختر جوون هم بزاری از 18 به بالا خوشگل و چشم رنگی و
+    - کودک یا نوجوان در اجرای رقص عربی نمایش داده شود. از 18 ساله به بالا
+  
+    religious_rules:
+  
+    - موضوع‌های اهل سنت و خلفای اهل سنت خارج از محدوده کانال‌اند و تولید نشوند
+    - هیچ مقایسه فرقه‌ای یا مناظره مذهبی تولید نشود
+    - هیچ نقل‌قول جعلی یا منبع‌سازی مذهبی انجام نشود
+    - هیچ فتوای شخصی یا حکم شرعی بدون منبع معتبر ارائه نشود
+    - موضوع‌های مذهبی با لحن محترمانه، اخلاقی و کاربردی باشند
+    fragrance_rules:
+    - عطر را درمان یا عامل جذب قطعی معرفی نکن
+    - ادعای فرومون تضمینی مطرح نکن
+    - در واکنش پوستی توصیه عمومی و ایمن بده
+    - بهترین عطر را برای همه یکسان معرفی نکن
+    - از جنسی‌سازی زنان یا مردان در تصاویر عطر را مثل تیزر های تبلغیاتی که قشنگ در میارن انجام بده
+    - در تصاویر انتخاب عطر از بزرگسالان استفاده کن از دخترای جوون از 18 سال به بالا میتونی استفاده کنی
 deduplication:
   enabled: true
   history_file: content_history.json
@@ -3352,6 +3405,10 @@ output_schema:
     خروجی باید دقیقاً پنج صحنه داشته باشد.
 
     هر صحنه باید متن گفتار، توضیح تصویر و keywords مستقل داشته باشد.
+
+    در موضوع زنانه، visual_description صحنه اول باید دقیقاً اندازه نما، زاویه دوربین، جایگاه زن در کادر و بخش قابل‌مشاهده بدن را بنویسد.
+
+    keywords صحنه اول باید انگلیسی، دقیق و شامل adult woman یا young adult woman همراه با medium shot، face visible یا full body visible باشد.
 
     keywords باید انگلیسی، دقیق و قابل جست‌وجو باشند.
 
@@ -3608,12 +3665,13 @@ voice_selection:
     pitch: +0Hz
     volume: +0%
 model_settings:
-  temperature: 0.75
-  top_p: 0.9
+  temperature: 0.55
+  top_p: 0.85
   creativity_level: controlled
   factuality_priority: high
   instruction_priority:
   - دقت اطلاعات
+  - دیده‌شدن واضح سوژه اصلی زن در صحنه اول موضوع‌های زنانه
   - رعایت ساختار خروجی
   - ارتباط مستقیم تصویر و روایت
   - طبیعی‌بودن زبان
@@ -3676,6 +3734,10 @@ run_report:
   fields:
   - female_centered_topic
   - first_scene_contains_relevant_woman
+  - first_scene_woman_clearly_visible
+  - first_scene_woman_foreground
+  - first_scene_woman_frame_coverage_passed
+  - first_scene_not_hands_or_object_only
   - sewing_topic
   - dance_topic
   - visual_safety_passed
@@ -3704,8 +3766,11 @@ final_acceptance:
   - عنوان با محتوای ویدیو هماهنگ است
   - هشتگ‌ها مرتبط هستن
   - ویدیو حداقل یک نکته روشن به مخاطب یاد می‌دهد
-  - در موضوع زنانه، تصویر اول زن بزرگسال یا سوژه زنانه مرتبط دارد
-  - در بیشتر خروجی‌ها، صحنه اول به‌طور طبیعی حضور زن بزرگسال دارد
+  - در موضوع زنانه، تصویر اول خود زن بزرگسال را واضح و قابل‌تشخیص نشان می‌دهد؛ دست، ابزار یا اشیا به‌تنهایی قبول نیستند
+  - زن از اولین فریم در پیش‌زمینه است و حداقل صورت و نیم‌تنه یا تمام بدن او داخل کادر دیده می‌شود
+  - زاویه صحنه اول روبه‌رو یا سه‌رخ در سطح چشم است و پشت‌سر، سیلوئت، POV، نمای خیلی دور و نمای خیلی بسته استفاده نشده
+  - زن با اشیا، متن، برش کادر یا سوژه دیگر پوشانده نشده و حداقل حدود سی درصد کادر را گرفته است
+  - در بیشتر خروجی‌ها، صحنه اول به‌طور طبیعی حضور واضح زن بزرگسال دارد
   - زن یا دختر برای کلیک‌بیت یا جنسی‌سازی استفاده نشده
   - موضوع خیاطی دارای keywords دقیق ابزار، پارچه و فعالیت است
   - موضوع رقص فقط بزرگسالان را در زمینه آموزشی یا فرهنگی نمایش می‌دهد
@@ -3717,10 +3782,11 @@ final_acceptance:
   - در موضوع مذهبی چهره ساختگی شخصیت مقدس نمایش داده نشده
   - هر ویدیو هفت هشتگ ثابت و دقیقاً پنج هشتگ موضوعی دارد
   - هشتگ‌های موضوعی مستقیماً با همان ویدیو مرتبط‌اند
-  - موضوع عطر زنانه تصویر زن بزرگسال مرتبط دارد
+  - موضوع عطر زنانه تصویر واضح زن بزرگسال مرتبط در نمای متوسط یا نیم‌تنه دارد
   - موضوع عطر مردانه تصویر مرد بزرگسال مرتبط دارد
   - بهترین عطر به شکل مطلق و همگانی معرفی نشده
   - هیچ ادعای پزشکی یا فرومونی قطعی درباره عطر مطرح نشده
+  on_visual_failure: reject_media_and_regenerate_failed_scene_without_changing_topic
   on_failure: reject_and_generate_new_topic
 female_focus:
   enabled: true
@@ -3728,21 +3794,32 @@ female_focus:
   target_first_scene_woman_percentage: 75
   always_use_relevant_woman_visual_for_female_topics: true
   default_first_scene_subject: adult woman or young adult woman
+  scene_1_woman_must_be_visually_verifiable: true
+  scene_1_visible_from_first_frame: true
+  scene_1_minimum_continuous_visibility_seconds: 3
+  scene_1_minimum_frame_coverage_percent: 30
+  scene_1_required_shot: medium shot, medium close up, or full body shot
+  scene_1_required_angle: eye level front view or eye level three quarter view
+  scene_1_hands_only_does_not_count: true
+  scene_1_object_only_does_not_count: true
+  scene_1_back_view_does_not_count: true
+  scene_1_silhouette_does_not_count: true
+  scene_1_tiny_background_subject_does_not_count: true
   minor_visual_policy: از تصویر کودک فقط برای موضوع‌های واقعی کودکی یا آموزش دختران استفاده شود؛ در موضوع‌های مد، خیاطی و
     رقص فقط بزرگسال نمایش داده شود.
   avoid_sexualization: true
   avoid_clickbait_casting: true
   require_topic_relevance: true
   first_scene_keyword_examples:
-  - adult woman learning sewing vertical video
-  - female tailor pattern cutting close up
-  - young adult woman reading history book
-  - female scientist laboratory portrait
-  - adult woman cultural dance practice
-  - woman artist traditional craft
+  - adult woman learning sewing medium shot front three quarter face visible vertical
+  - female tailor pattern cutting medium shot upper body visible
+  - young adult woman reading history book medium shot foreground centered
+  - female scientist laboratory medium shot face visible eye level
+  - adult woman cultural dance practice full body front view
+  - woman artist traditional craft medium shot upper body visible
   women_related_topics_require_woman_in_scene_1: true
   target_first_scene_woman_percentage_for_women_topics: 100
-  scene_1_woman_rule: در موضوع‌های مربوط به زنان و دختران، صحنه اول باید یک زن مرتبط با همان موضوع داشته باشد.
+  scene_1_woman_rule: در موضوع‌های مربوط به زنان و دختران، صحنه اول باید خود زن مرتبط را واضح، در پیش‌زمینه و قابل‌تشخیص نشان دهد؛ نمای دست، ابزار، شیء، پشت‌سر یا زن بسیار کوچک در پس‌زمینه حضور زن محسوب نمی‌شود.
   detection_terms:
   - زن
   - زنان
@@ -3755,6 +3832,12 @@ female_focus:
   - مد زنانه
   - لباس زنانه
   - عطر زنانه
+  - مادر
+  - مادران
+  - مادربزرگ
+  - مادربزرگ‌ها
+  - female
+  - woman
   - حضرت فاطمه
   - حضرت زینب
 religious_content:
@@ -3859,7 +3942,7 @@ religious_content:
     - Karbala shrine exterior night
     - Najaf shrine exterior architecture
     - Islamic calligraphy manuscript close up
-    - adult woman modest clothing reflection
+    - adult Muslim woman modest clothing medium shot face visible
     - religious textile embroidery hands
   comment_policy:
     dynamic: true
@@ -3895,15 +3978,18 @@ fragrance_content:
     عبارت «بهترین عطر» را مطلق و همگانی تعریف نکن.
     توضیح بده که انتخاب به فصل، موقعیت، خانواده بویایی، بودجه و سلیقه بستگی دارد.
 
-    برای موضوع زنانه، صحنه اول در صورت ارتباط مستقیم می‌تواند زن بزرگسال
-    در حال تست رایحه، انتخاب شیشه عطر، آماده‌شدن یا حضور در فروشگاه عطر باشد.
+    برای موضوع زنانه، صحنه اول باید زن بزرگسال را واضح در نمای متوسط یا نیم‌تنه
+    از روبه‌رو یا سه‌رخ، در حال تست رایحه، انتخاب شیشه عطر، آماده‌شدن یا حضور در فروشگاه عطر نشان دهد.
+    نمای فقط دست، فقط شیشه عطر، پشت‌سر، سیلوئت یا زن کوچک در پس‌زمینه برای صحنه اول مردود است.
 
     برای موضوع مردانه، صحنه اول در صورت ارتباط مستقیم می‌تواند مرد بزرگسال
     در حال تست یا انتخاب عطر، آماده‌شدن برای کار یا مراسم باشد.
 
-    برای ویدیوهای زنانه keywords دقیق مثل این‌ها باشند:
-    adult woman testing perfume, woman fragrance store,
-    female hand perfume bottle, woman applying perfume wrist.
+    برای صحنه اول ویدیوهای زنانه keywords دقیق مثل این‌ها باشند:
+    adult woman testing perfume medium shot face visible,
+    woman fragrance store foreground centered upper body visible,
+    adult woman applying perfume wrist medium shot face in frame.
+    عبارت female hand perfume bottle فقط برای صحنه‌های دوم تا پنجم مجاز است.
 
     برای ویدیوهای مردانه keywords دقیق مثل این‌ها باشند:
     adult man testing cologne, man fragrance store,
@@ -3934,14 +4020,22 @@ fragrance_content:
   pheromone_guarantee_forbidden: true
   minor_visuals_forbidden: true
   women_visual_keywords:
-  - adult woman testing perfume vertical
-  - woman fragrance store
+  - adult woman testing perfume medium shot face visible vertical
+  - woman fragrance store foreground centered upper body visible
+  - adult woman applying perfume wrist medium shot face in frame
+  - adult woman choosing fragrance eye level three quarter view
+  - adult woman holding perfume bottle medium close up clearly visible
+  women_detail_keywords_scene_2_to_5:
   - female hand perfume bottle close up
-  - adult woman applying perfume wrist
-  - woman choosing fragrance
+  - perfume spray macro
+  - perfume blotter hand close up
   men_visual_keywords:
-  - adult man testing cologne vertical
-  - man fragrance store
+  - adult man testing cologne medium shot face visible vertical
+  - man fragrance store foreground centered upper body visible
+  - adult man applying cologne medium shot face in frame
+  - adult man choosing fragrance eye level three quarter view
+  - adult man holding perfume bottle medium close up clearly visible
+  men_detail_keywords_scene_2_to_5:
   - male hand perfume bottle close up
-  - adult man applying cologne
-  - man choosing fragrance
+  - cologne spray macro
+  - perfume blotter hand close up
