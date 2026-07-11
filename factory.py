@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-🏭 کارخانه ویدیوی خودکار — نسخه ۵
+🏭 کارخانه ویدیوی خودکار — نسخه ۶
 همه‌چیز رایگان: Gemini (سناریو) + edge-tts (صدا) + Pexels/Pixabay (تصویر) + FFmpeg (مونتاژ)
 + YouTube Data API + Instagram Graph API
 اجرا روی GitHub Actions — دو فاز:
@@ -144,6 +144,54 @@ def _is_fragrance_script(data):
     )
     haystack = _script_search_text(data).casefold()
     return any(marker.casefold() in haystack for marker in markers)
+
+
+def _is_women_related_script(data, cfg):
+    """تشخیص تقریبی موضوع‌های زنانه/دخترانه برای صحنه اول."""
+    female_cfg = cfg.get("female_focus") or {}
+    markers = [
+        str(item).strip()
+        for item in female_cfg.get(
+            "detection_terms",
+            [
+                "زن",
+                "زنان",
+                "دختر",
+                "دختران",
+                "بانو",
+                "بانوان",
+                "زنانه",
+                "مادر",
+                "مادری",
+                "خیاطی",
+                "لباس زنانه",
+                "مد زنانه",
+                "عطر زنانه",
+                "حضرت فاطمه",
+                "حضرت زینب",
+                "زنان در",
+            ],
+        )
+        if str(item).strip()
+    ]
+    haystack = _script_search_text(data).casefold()
+    return any(marker.casefold() in haystack for marker in markers)
+
+
+_FEMALE_KEYWORD_MARKERS = (
+    "adult woman",
+    "young adult woman",
+    "female ",
+    "woman ",
+    "women ",
+    "girl ",
+    "girls ",
+)
+
+
+def _scene_has_female_subject(keywords):
+    text = f" {str(keywords or '').strip().casefold()} "
+    return any(marker in text for marker in _FEMALE_KEYWORD_MARKERS)
 
 
 def _is_religious_script(data, cfg):
@@ -457,6 +505,15 @@ def generate_script(cfg):
 - مخفف و واژه خارجی را طوری بنویس که فارسی‌زبان درست تلفظش کند.
 - هیچ ایموجی، ستاره یا هشتگ داخل narration نباشد.
 - keywords انگلیسی و مناسب ویدیوی استوک باشد.
+- keywords هر صحنه باید دقیق، مشخص، قابل‌جست‌وجو و مستقیماً مربوط به همان صحنه باشد.
+- از keywords مبهم، تزئینی یا نامرتبط مثل cinematic, abstract, background, business, technology, camera
+  استفاده نکن؛ مگر اینکه خودِ صحنه واقعاً درباره همان موضوع باشد.
+- اگر صحنه درباره خیاطی، دکمه، دوخت، پارچه، قیچی، چرخ خیاطی یا الگو است،
+  keywords باید دقیقاً همان وسیله یا همان عمل را توصیف کند؛ نه موضوع نامرتبط.
+- اگر صحنه درباره عطر است، keywords باید دقیقاً به عطر، شیشه عطر، تست رایحه یا فروشگاه عطر مربوط باشد.
+- اگر صحنه درباره مکان، شخص، شیء، مهارت یا مراسم خاصی است، keywords باید همان را نام ببرد.
+- برای موضوع‌های مربوط به زنان یا دختران، keywords صحنه اول باید حتماً شامل یک سوژه زن مرتبط باشد
+  مثل adult woman, young adult woman, female tailor, female scientist, woman reading, woman sewing.
 - صحنه آخر با یک سؤال طبیعی یا جمله باز تمام شود.
 - مقدار comment باید مخصوص موضوع همین ویدیو باشد، نه یک متن عمومی و تکراری.
 - comment باید یک سؤال کوتاه، طبیعی، محترمانه و مرتبط با نکته اصلی ویدیو باشد.
@@ -1043,12 +1100,49 @@ def search_pixabay(query, used_ids):
     return [x for x in results if x.get("uid") not in used_ids]
 
 
+def _clean_stock_query(value):
+    value = re.sub(r"\s+", " ", str(value or "")).strip()
+    return value
+
+
+def _stock_query_variants(keywords):
+    """فقط queryهای مرتبط می‌سازد؛ fallback نامرتبط تولید نمی‌کند."""
+    base = _clean_stock_query(keywords)
+    variants = []
+    for item in (
+        base,
+        base.replace("  ", " "),
+        base + " vertical",
+    ):
+        item = _clean_stock_query(item)
+        if item and item not in variants:
+            variants.append(item)
+    return variants
+
+
+def _apply_scene_visual_policies(script, cfg):
+    """قبل از جست‌وجوی ویدیو، keywordها را کمی دقیق‌تر و همسو با قوانین اصلاح می‌کند."""
+    scenes = script.get("scenes") or []
+    if not isinstance(scenes, list):
+        return
+
+    women_related = _is_women_related_script(script, cfg)
+    for idx, scene in enumerate(scenes):
+        if not isinstance(scene, dict):
+            continue
+        keywords = _clean_stock_query(scene.get("keywords", ""))
+        # واژه‌های خیلی عمومی و گمراه‌کننده را فقط وقتی مستقل آمده‌اند حذف کن
+        if keywords.casefold() in {"cinematic", "abstract", "background", "business", "technology", "camera"}:
+            narration = _clean_stock_query(scene.get("narration", ""))
+            keywords = narration if narration else keywords
+
+        if idx == 0 and women_related and not _scene_has_female_subject(keywords):
+            keywords = f"adult woman {keywords}".strip()
+
+        scene["keywords"] = keywords
+
 def stock_clip(keywords, dest, used_ids, source_counts):
-    queries = [
-        keywords,
-        "cinematic nature",
-        "abstract dark background",
-    ]
+    queries = _stock_query_variants(keywords)
 
     # در هر ویدیو منابع را متعادل نگه می‌داریم: تقریباً ۳/۲ یا ۲/۳.
     if source_counts["pexels"] < source_counts["pixabay"]:
@@ -1098,6 +1192,7 @@ def build_video(cfg, script):
 
     voice_profile = choose_voice_profile(cfg)
     script["voice_profile"] = voice_profile
+    _apply_scene_visual_policies(script, cfg)
 
     all_words, scene_files, audio_files = [], [], []
     used_ids = set()
