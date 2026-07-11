@@ -1,0 +1,9 @@
+# Generated video files
+output/*.mp4
+
+# Temporary rendering files
+work/
+
+# Python cache
+__pycache__/
+*.pyc
