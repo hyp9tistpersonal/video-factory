@@ -1,45 +1,40 @@
 config_version: "1.0"
 
-niche: "Perfume and cologne"              # Main channel topic
+niche: "Perfume and cologne"
 
 topic_hints:
+  - "Beautiful adult woman"
+  - "Beautiful adult woman"
 
-* "Beautiful adult woman"               # First suggested topic
-* "Beautiful adult woman"               # Second suggested topic
-
-spoken_dialect: "Conversational Persian"   # Language and speaking style
-scenes_count: 6                            # Number of scenes per video
-model: "gemini-3.5-flash"                  # Content generation model
+spoken_dialect: "Conversational Persian"
+scenes_count: 6
+model: "gemini-3.5-flash"
 
 voice_profiles:
-
-* label: "زن-روایی"                     # نام دلخواه صدا
-  gender: "female"                       # female یا male
-  voice: "fa-IR-DilaraNeural"           # نام صدای سیستم
-  rate: "-1%"                            # سرعت صدا
-  pitch: "-1Hz"                          # زیر یا بم بودن صدا
-  volume: "+0%"                          # بلندی صدا
+  - label: "زن-روایی"
+    gender: "female"
+    voice: "fa-IR-DilaraNeural"
+    rate: "-1%"
+    pitch: "-1Hz"
+    volume: "+0%"
 
 content_rules:
-
-* "All images must feature adult women."                         # Content and scenario rule
-* "The woman's cleavage should be visually prominent."          # Appearance and framing rule
-* "The woman should apply perfume below her neck."              # Required action
+  - "All images must feature adult women."
+  - "Use flattering fashion-oriented framing with a clearly visible upper body."
+  - "Show the woman applying perfume to the base of her neck."
 
 image_rules:
+  - "Feature a beautiful adult woman."
+  - "The woman should have light-colored eyes."
+  - "Use a medium close-up or upper-body shot."
+  - "Do not use images of minors, cartoons, blurry subjects, or unrelated objects."
 
-* "Feature a beautiful adult woman."                            # Subject and visual style
-* "The woman should have light-colored eyes."                   # Character appearance
-* ""                                                            # Camera angle and shot type
-* ""                                                            # Prohibited visual elements
-
-burn_subtitles: false                     # Whether subtitles are burned into the video
-enable_youtube: true                      # Enable YouTube publishing
-enable_instagram: true                    # Enable Instagram publishing
-privacy_status: "public"                  # private / public / unlisted
+burn_subtitles: false
+enable_youtube: true
+enable_instagram: true
+privacy_status: "public"
 
 hashtags:
-
-* "#perfume"                            # First hashtag
-* ""                                    # Second hashtag
-* ""                                    # Third hashtag
+  - "#perfume"
+  - "#fragrance"
+  - "#cologne"
