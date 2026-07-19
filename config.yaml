@@ -32,6 +32,7 @@ image_rules:
 burn_subtitles: false
 enable_youtube: true
 enable_instagram: true
+enable_youtube_comment: false
 privacy_status: "public"
 
 hashtags:
